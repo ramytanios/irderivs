@@ -5,12 +5,6 @@ import io.circe.derivation.*
 import io.circe.derivation.Configuration
 import io.circe.derivation.ConfiguredCodec
 
-object VolUnit:
-  given Configuration = Configuration.default
-
-enum VolUnit derives ConfiguredEnumCodec:
-  case BpPerYear
-
 case class VolatilityMarketConventions(
     boundaryTenor: Tenor,
     liborRate: VolatilityMarketConventions.Libor,
@@ -47,12 +41,9 @@ object Volatility:
 
 enum Volatility:
 
-  def unit: VolUnit
-
   case Cube(
       cube: Map[Tenor, Map[Tenor, List[(Moneyness, Double)]]],
-      unit: VolUnit,
       conventions: VolatilityMarketConventions
   ) extends Volatility
 
-  case Flat(vol: Double, unit: VolUnit) extends Volatility
+  case Flat(vol: Double) extends Volatility

@@ -91,8 +91,8 @@ object Market:
         tenor: dtos.Tenor
     ): Either[MarketError, Map[dtos.Tenor, List[(dtos.Moneyness, Double)]]] =
       volatilities.get(currency).flatMap:
-        case dtos.Volatility.Cube(cube, _, _) => cube.get(tenor)
-        case dtos.Volatility.Flat(_, _)       => None
+        case dtos.Volatility.Cube(cube, _) => cube.get(tenor)
+        case dtos.Volatility.Flat(_)       => None
       .toRight(MissingVolatilitySurface(currency, tenor))
 
     def calendar(name: dtos.CalendarId): Either[MarketError, dtos.Calendar[T]] =

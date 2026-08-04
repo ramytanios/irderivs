@@ -34,7 +34,7 @@ class Lib[T: lib.DateLike](market: Market[T]):
       tenor: lib.quantities.Tenor
   ): Either[lib.Error, lib.VolatilitySurface[T]] =
     market.volCube(currency).flatMap:
-      case dtos.Volatility.Cube(cube, unit, conventions) =>
+      case dtos.Volatility.Cube(cube, conventions) =>
         market.volSurface(currency, tenor).flatMap: surface =>
           buildVolConventions(conventions, tenor).map: rate =>
             val skews = surface.toList.map:
@@ -45,16 +45,15 @@ class Lib[T: lib.DateLike](market: Market[T]):
                   val (ms, vs0) = skew.unzip
                   val fwd = rate.forward(expiry)
                   val ks = ms.map(fwd + _.value)
-                  val vs1 = vs0.map(unit.fromUnit)
-                  lib.VolatilitySkew(ks.toIndexedSeq, vs1.toIndexedSeq)
+                  lib.VolatilitySkew(ks.toIndexedSeq, vs0.toIndexedSeq)
             val sortedSkews = skews.sortBy(_(0))(using lib.syntax.given_Ordering_T)
             lib.VolatilitySurface[T](market.t, rate.forward, sortedSkews.toIndexedSeq)
-      case dtos.Volatility.Flat(vol, unit) =>
-        lib.VolatilitySurface.flat[T](unit.fromUnit(vol)).asRight[lib.Error]
+      case dtos.Volatility.Flat(vol) =>
+        lib.VolatilitySurface.flat[T](vol).asRight[lib.Error]
 
   def buildVolCube(currency: dtos.Currency): Either[lib.Error, lib.VolatilityCube[T]] =
     market.volCube(currency).flatMap:
-      case dtos.Volatility.Cube(cube, unit, conventions) =>
+      case dtos.Volatility.Cube(cube, conventions) =>
         val surfaces = cube.toList.traverse: (tenor, _) =>
           buildVolSurface(currency, tenor).tupleLeft(tenor)
         .map(_.toIndexedSeq)
@@ -65,8 +64,8 @@ class Lib[T: lib.DateLike](market: Market[T]):
           val sortedSurfaces = surfaces.sortBy((t, _) => t.toYearFraction.value)
             .map((t, e) => (t: Tenor) -> e)
           lib.VolatilityCube[T](sortedSurfaces, forwards)
-      case dtos.Volatility.Flat(vol, unit) =>
-        lib.VolatilityCube.flat[T](unit.fromUnit(vol)).asRight[lib.Error]
+      case dtos.Volatility.Flat(vol) =>
+        lib.VolatilityCube.flat[T](vol).asRight[lib.Error]
 
   def buildVolConventions(volConventions: dtos.VolatilityMarketConventions, tenor: Tenor) =
     if (volConventions.boundaryTenor: Tenor) >= tenor then
@@ -78,8 +77,8 @@ class Lib[T: lib.DateLike](market: Market[T]):
       tenor: Tenor
   ): Either[lib.Error, lib.Underlying[T]] =
     market.volCube(currency).flatMap:
-      case dtos.Volatility.Cube(_, _, conventions) => buildVolConventions(conventions, tenor)
-      case dtos.Volatility.Flat(_, _) =>
+      case dtos.Volatility.Cube(_, conventions) => buildVolConventions(conventions, tenor)
+      case dtos.Volatility.Flat(_) =>
         Left(lib.Error.Generic(s"vol is flat, no convetions available"))
 
   private def toLibor(libor: dtos.VolatilityMarketConventions.Libor, tenor: Tenor) =

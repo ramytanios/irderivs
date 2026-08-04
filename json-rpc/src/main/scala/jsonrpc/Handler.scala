@@ -96,7 +96,7 @@ object Handler:
           params =>
             val market = Market[LocalDate](params.tRef, params.market, params.static)
             market.volCube(params.currency).flatMap:
-              case dtos.Volatility.Cube(cube, _, _) =>
+              case dtos.Volatility.Cube(cube, _) =>
                 val tenors = cube.keysIterator.toList
                 val expiries = cube.values.flatMap(_.keysIterator).toList.distinct
                 val api = new Api(market)
@@ -107,7 +107,7 @@ object Handler:
                   JsonObject("matrix" -> matrix.map((te, ex, ar) =>
                     (te, ex, arbitrageToJson(ar)).asJson
                   ).asJson).toJson
-              case dtos.Volatility.Flat(_, _) =>
+              case dtos.Volatility.Flat(_) =>
                 lib.Error.Generic("arbitrage matrix does not support flat cube").asLeft
         )
 

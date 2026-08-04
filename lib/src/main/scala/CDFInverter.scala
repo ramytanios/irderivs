@@ -8,15 +8,15 @@ enum Arbitrage:
   case RightAsymptotic
   case Density(leftStrike: Double, rightStrike: Double)
 
-case class Params(
-    nMiddle: Int = 500, // number of interior strikes
-    nTail: Int = 50, // number strikes per tail
-    nTailMax: Int = 15, // tail strikes max iterations
-    cdfThreshold: Double = 0.001, // tail cdf theshold
-    relPriceThreshold: Double = 0.05 // call put relative price threshold
-)
-
 object CDFInverter:
+
+  case class Params(
+      nMiddle: Int = 500, // number of interior strikes
+      nTail: Int = 50, // number strikes per tail
+      nTailMax: Int = 15, // tail strikes max iterations
+      cdfThreshold: Double = 0.001, // tail cdf theshold
+      relPriceThreshold: Double = 0.05 // call put relative price threshold
+  )
 
   def apply[T: DateLike](
       t: T,

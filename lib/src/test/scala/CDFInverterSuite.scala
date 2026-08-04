@@ -33,7 +33,7 @@ class CDFInverterSuite extends munit.FunSuite:
 
   val forwardAtExp = forward.apply(tExp)
 
-  val params = Params(400, 40, 10, 0.001, 0.05)
+  val params = CDFInverter.Params(400, 40, 10, 0.001, 0.05)
 
   val ms = List(
     -4.00, -3.00, -2.00, -1.50, -1.00, -0.50, 0.00, 0.50, 1.00, 1.50, 2.00, 3.00, 4.00
