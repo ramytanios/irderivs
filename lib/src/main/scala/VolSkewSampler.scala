@@ -1,5 +1,6 @@
 package lib
 
+import lib.dtos.Moneyness
 import lib.syntax.*
 import org.apache.commons.math3.distribution.NormalDistribution
 
@@ -24,7 +25,7 @@ object VolSkewSampler:
   def apply[T: DateLike](
       t: T,
       expiry: T,
-      ksQuoted: List[Double],
+      msQuoted: List[Moneyness],
       volSkew: VolatilitySkew,
       forward: Forward[T],
       params: VolSkewSampler.Params
@@ -32,6 +33,7 @@ object VolSkewSampler:
 
     val dt = t.yearFractionTo(expiry)(using lib.DateLike[T], DayCounter.Act365)
     val fwd = forward(expiry)
+    val ksQuoted = msQuoted.map(_.value + fwd)
     val vsQuoted = ksQuoted.map(volSkew)
     val impliedPdf = bachelier.impliedDensity(
       fwd,

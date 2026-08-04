@@ -60,14 +60,12 @@ class Api[T: lib.DateLike](val market: Market[T]):
       val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
       buildVolCube(currency).map: volCube =>
         val volSkew = volCube(tenor)(t)
-        val fwd = rate.forward(t)
-        val ksQuoted =
-          market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry))
-            .map(_.unzip._1.map(_.value + fwd)).orEmpty.toList
+        val msQuoted = market.volSurface(currency, tenor)
+          .toOption.flatMap(_.get(expiry)).map(_.unzip._1).orEmpty.toList
         VolSkewSampler(
           market.t,
           t,
-          ksQuoted,
+          msQuoted,
           volSkew,
           rate.forward,
           VolSkewSampler.Params(nSamplesMiddle, nSamplesTail, nStdvsTail)
