@@ -32,3 +32,7 @@ extension [C](cs: IndexedSeq[C])
   def searchBy[A: Ordering](by: C => A)(elem: A): utils.BinarySearch =
     utils.binarySearchBy(cs, by)(elem)
   def isStrictlyIncreasing(using Ordering[C]): Boolean = utils.isStrictlyIncreasing(cs)
+
+def uniform(from: Double, to: Double, n: Int): IndexedSeq[Double] =
+  val step = (to - from) / n
+  if step == 0.0 then IndexedSeq.empty[Double] else (0 to n).map(i => from + i * step)
