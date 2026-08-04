@@ -38,6 +38,13 @@ class Api[T: lib.DateLike](val market: Market[T]):
           price <- caplet.price(market.t, volCube, fixings)
         yield price
 
+  private def readMarketQuotes(
+      currency: dtos.Currency,
+      tenor: Tenor,
+      expiry: Tenor
+  ): List[(dtos.Moneyness, Double)] =
+    market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry)).orEmpty.toList
+
   def arbitrageCheck(
       currency: dtos.Currency,
       tenor: Tenor,
@@ -45,6 +52,8 @@ class Api[T: lib.DateLike](val market: Market[T]):
   ): Either[lib.Error, Option[Arbitrage]] =
     buildVolConventions(currency, tenor).flatMap: rate =>
       val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
+      val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
+      // TODO ensure CDF builder covers quoted region
       buildVolSurface(currency, tenor)
         .map(_(t)).map(CDFInverter(market.t, t, _, rate.forward, CDFInverter.Params()).swap.toOption)
 
@@ -60,8 +69,7 @@ class Api[T: lib.DateLike](val market: Market[T]):
       val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
       buildVolCube(currency).map: volCube =>
         val volSkew = volCube(tenor)(t)
-        val msQuoted = market.volSurface(currency, tenor)
-          .toOption.flatMap(_.get(expiry)).map(_.unzip._1).orEmpty.toList
+        val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
         VolSkewSampler(
           market.t,
           t,
