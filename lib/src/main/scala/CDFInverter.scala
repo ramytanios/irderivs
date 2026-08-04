@@ -39,7 +39,7 @@ object CDFInverter:
     val cdfImplied = bachelier.impliedCumulative(fwd, dt, vol.apply, vol.fstDerivative)
 
     def middleStrikes =
-      val dk = 1 / (params.nMiddle + 1)
+      val dk = 1.0 / (params.nMiddle + 1)
       val strikes = (1 to params.nMiddle).map(i => cdfInvN(i * dk))
       val cdfs = strikes.map(cdfImplied)
       (strikes -> cdfs).asRight[Arbitrage]
@@ -58,12 +58,11 @@ object CDFInverter:
          Either.raiseWhen(cut < 0)(Arbitrage.LeftAsymptotic).as(points.take(cut + 1).map(_(0)))
       ) .flatMap: ks =>
         val kMin = ks.lastOption.getOrElse(kL)
-        val kMax = ks.headOption.getOrElse(kL)
         val put = bachelier.price(dtos.OptionType.Put, fwd, kMin, dt, vol(kMin), 1.0)
         val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, vol(fwd), 1.0)
         Either.raiseUnless(put <= params.relPriceThreshold * putAtm)(Arbitrage.LeftAsymptotic)
           .as:
-            val strikes = uniform(kMin, kMax)
+            val strikes = uniform(kMin, kL)
             val cdfs = strikes.map(cdfImplied)
             strikes -> cdfs
 
@@ -76,13 +75,12 @@ object CDFInverter:
          val cut = points.indexWhere((_, cdf) => cdf >= (1 - params.cdfThreshold))
          Either.raiseWhen(cut < 0)(Arbitrage.RightAsymptotic).as(points.take(cut + 1).map(_(0)))
       ) .flatMap: ks =>
-        val kMin = ks.headOption.getOrElse(kR)
         val kMax = ks.lastOption.getOrElse(kR)
         val call = bachelier.price(dtos.OptionType.Call, fwd, kMax, dt, vol(kMax), 1.0)
         val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, vol(fwd), 1.0)
         Either.raiseUnless(call <= params.relPriceThreshold * callAtm)(Arbitrage.RightAsymptotic)
           .as:
-            val strikes = uniform(kMin, kMax)
+            val strikes = uniform(kR, kMax)
             val cdfs = strikes.map(cdfImplied)
             strikes -> cdfs
 
