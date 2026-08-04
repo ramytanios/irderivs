@@ -43,7 +43,7 @@ class Api[T: lib.DateLike](val market: Market[T]):
       tenor: Tenor,
       expiry: Tenor
   ): List[(dtos.Moneyness, Double)] =
-    market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry)).orEmpty.toList
+    market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry)).orEmpty
 
   def arbitrageCheck(
       currency: dtos.Currency,
