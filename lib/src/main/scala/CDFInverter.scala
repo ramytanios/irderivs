@@ -62,7 +62,7 @@ object CDFInverter:
         val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, vol(fwd), 1.0)
         Either.raiseUnless(put <= params.relPriceThreshold * putAtm)(Arbitrage.LeftAsymptotic)
           .as:
-            val strikes = uniform(kMin, kL)
+            val strikes = uniform(kMin, kL).dropRight(1)
             val cdfs = strikes.map(cdfImplied)
             strikes -> cdfs
 
@@ -80,7 +80,7 @@ object CDFInverter:
         val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, vol(fwd), 1.0)
         Either.raiseUnless(call <= params.relPriceThreshold * callAtm)(Arbitrage.RightAsymptotic)
           .as:
-            val strikes = uniform(kR, kMax)
+            val strikes = uniform(kR, kMax).drop(1)
             val cdfs = strikes.map(cdfImplied)
             strikes -> cdfs
 
