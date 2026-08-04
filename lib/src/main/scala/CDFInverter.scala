@@ -39,63 +39,52 @@ object CDFInverter:
     val cdfImplied = bachelier.impliedCumulative(fwd, dt, vol.apply, vol.fstDerivative)
 
     def middleStrikes =
-      val strikes = (1 to params.nMiddle).map(i => cdfInvN(i / (params.nMiddle + 1.0)))
+      val dk = 1 / (params.nMiddle + 1)
+      val strikes = (1 to params.nMiddle).map(i => cdfInvN(i * dk))
       val cdfs = strikes.map(cdfImplied)
       (strikes -> cdfs).asRight[Arbitrage]
 
-    def uniformTail(kMin: Double, kMax: Double): IndexedSeq[Double] =
+    def uniform(kMin: Double, kMax: Double): IndexedSeq[Double] =
       val step = (kMax - kMin) / params.nTail
       if step == 0.0 then IndexedSeq.empty[Double] else (0 to params.nTail).map(i => kMin + i * step)
 
     def leftStrikes(kL: Double) =
-      if cdfImplied(kL) <= params.cdfThreshold then
-        (IndexedSeq.empty[Double], IndexedSeq.empty).asRight[Arbitrage]
-      else
-        val ks = Iterator.iterate((0, kL))((n, k) => (n + 1, k - atmStdv))
-          .takeWhile((n, k) => n <= params.nTailMax && cdfImplied(k) > params.cdfThreshold)
-          .map(_(1))
-          .drop(1)
-          .toIndexedSeq
-        Either.raiseWhen(
-          ks.size == params.nTailMax && cdfImplied(ks.last) > params.cdfThreshold
-        )(Arbitrage.LeftAsymptotic)
-          .flatMap: _ =>
-            val kmMin = cdfInvN(1.0 / (params.nMiddle + 1.0))
-            val kMin = ks.headOption.getOrElse(kmMin)
-            val kMax = ks.lastOption.getOrElse(kmMin)
-            val put = bachelier.price(dtos.OptionType.Put, fwd, kMin, dt, vol(kMin), 1.0)
-            val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, vol(fwd), 1.0)
-            Either.raiseUnless(put <= params.relPriceThreshold * putAtm)(Arbitrage.LeftAsymptotic)
-              .as:
-                val strikes = uniformTail(kMin, kMax)
-                val cdfs = strikes.map(cdfImplied)
-                strikes.reverse -> cdfs.reverse
+      (if cdfImplied(kL) <= params.cdfThreshold then LazyList.empty[Double].asRight[Arbitrage]
+       else
+         val points = LazyList.range(1, params.nTailMax + 1)
+           .map(kL - _ * atmStdv)
+           .map(k => k -> cdfImplied(k))
+         val cut = points.indexWhere((_, cdf) => cdf <= params.cdfThreshold)
+         Either.raiseWhen(cut < 0)(Arbitrage.LeftAsymptotic).as(points.take(cut + 1).map(_(0)))
+      ) .flatMap: ks =>
+        val kMin = ks.lastOption.getOrElse(kL)
+        val kMax = ks.headOption.getOrElse(kL)
+        val put = bachelier.price(dtos.OptionType.Put, fwd, kMin, dt, vol(kMin), 1.0)
+        val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, vol(fwd), 1.0)
+        Either.raiseUnless(put <= params.relPriceThreshold * putAtm)(Arbitrage.LeftAsymptotic)
+          .as:
+            val strikes = uniform(kMin, kMax)
+            val cdfs = strikes.map(cdfImplied)
+            strikes -> cdfs
 
     def rightStrikes(kR: Double) =
-      if cdfImplied(kR) <= (1 - params.cdfThreshold) then
-        (IndexedSeq.empty[Double], IndexedSeq.empty).asRight[Arbitrage]
-      else
-        val ks = Iterator.iterate((1, kR))((n, k) => (n + 1, k + atmStdv))
-          .takeWhile((n, k) => n <= params.nTailMax && cdfImplied(k) < (1 - params.cdfThreshold))
-          .map(_(1))
-          .drop(1)
-          .toIndexedSeq
-        Either.raiseWhen(
-          ks.size == params.nTailMax && cdfImplied(ks.last) < (1 - params.cdfThreshold)
-        )(Arbitrage.RightAsymptotic)
-          .flatMap: _ =>
-            val kmMax = cdfInvN(params.nMiddle / (params.nMiddle + 1.0))
-            val kMin = ks.headOption.getOrElse(kmMax)
-            val kMax = ks.headOption.getOrElse(kmMax)
-            val call = bachelier.price(dtos.OptionType.Call, fwd, kMax, dt, vol(kMax), 1.0)
-            val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, vol(fwd), 1.0)
-            Either.raiseUnless(
-              call <= params.relPriceThreshold * callAtm
-            )(Arbitrage.RightAsymptotic)
-              .as:
-                val strikes = uniformTail(kMin, kMax)
-                val cdfs = strikes.map(cdfImplied)
-                strikes -> cdfs
+      (if cdfImplied(kR) >= (1 - params.cdfThreshold) then LazyList.empty[Double].asRight[Arbitrage]
+       else
+         val points = LazyList.range(1, params.nTailMax + 1)
+           .map(kR + _ * atmStdv)
+           .map(k => k -> cdfImplied(k))
+         val cut = points.indexWhere((_, cdf) => cdf >= (1 - params.cdfThreshold))
+         Either.raiseWhen(cut < 0)(Arbitrage.RightAsymptotic).as(points.take(cut + 1).map(_(0)))
+      ) .flatMap: ks =>
+        val kMin = ks.headOption.getOrElse(kR)
+        val kMax = ks.lastOption.getOrElse(kR)
+        val call = bachelier.price(dtos.OptionType.Call, fwd, kMax, dt, vol(kMax), 1.0)
+        val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, vol(fwd), 1.0)
+        Either.raiseUnless(call <= params.relPriceThreshold * callAtm)(Arbitrage.RightAsymptotic)
+          .as:
+            val strikes = uniform(kMin, kMax)
+            val cdfs = strikes.map(cdfImplied)
+            strikes -> cdfs
 
     for
       (mks, mvs) <- middleStrikes
