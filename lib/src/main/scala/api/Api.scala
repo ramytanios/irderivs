@@ -53,9 +53,9 @@ class Api[T: lib.DateLike](val market: Market[T]):
     buildVolConventions(currency, tenor).flatMap: rate =>
       val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
       val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
-      // TODO ensure CDF builder covers quoted region
-      buildVolSurface(currency, tenor)
-        .map(_(t)).map(CDFInverter(market.t, t, _, rate.forward, CDFInverter.Params()).swap.toOption)
+      val params = CDFInverter.Params()
+      buildVolSurface(currency, tenor).map(_(t)).map:
+        CDFInverter(market.t, t, msQuoted, _, rate.forward, params).swap.toOption
 
   def sampleVolSkew(
       currency: dtos.Currency,
@@ -64,17 +64,11 @@ class Api[T: lib.DateLike](val market: Market[T]):
       nSamplesMiddle: Int,
       nSamplesTail: Int,
       nStdvsTail: Int
-  ): Either[lib.Error, VolSkewSampler.Result] =
+  ): Either[lib.Error, VolatilitySkewSampler.Result] =
     buildVolConventions(currency, tenor).flatMap: rate =>
       val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
       buildVolCube(currency).map: volCube =>
         val volSkew = volCube(tenor)(t)
         val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
-        VolSkewSampler(
-          market.t,
-          t,
-          msQuoted,
-          volSkew,
-          rate.forward,
-          VolSkewSampler.Params(nSamplesMiddle, nSamplesTail, nStdvsTail)
-        )
+        val params = VolatilitySkewSampler.Params(nSamplesMiddle, nSamplesTail, nStdvsTail)
+        VolatilitySkewSampler(market.t, t, msQuoted, volSkew, rate.forward, params)

@@ -4,7 +4,7 @@ import lib.dtos.Moneyness
 import lib.syntax.*
 import org.apache.commons.math3.distribution.NormalDistribution
 
-object VolSkewSampler:
+object VolatilitySkewSampler:
 
   case class Params(
       nSamplesMiddle: Int,
@@ -28,20 +28,15 @@ object VolSkewSampler:
       msQuoted: List[Moneyness],
       volSkew: VolatilitySkew,
       forward: Forward[T],
-      params: VolSkewSampler.Params
+      params: VolatilitySkewSampler.Params
   ) =
 
     val dt = t.yearFractionTo(expiry)(using lib.DateLike[T], DayCounter.Act365)
     val fwd = forward(expiry)
     val ksQuoted = msQuoted.map(_.value + fwd)
     val vsQuoted = ksQuoted.map(volSkew)
-    val impliedPdf = bachelier.impliedDensity(
-      fwd,
-      dt.value,
-      volSkew,
-      volSkew.fstDerivative,
-      volSkew.sndDerivative
-    )
+    val impliedPdf =
+      bachelier.impliedDensity(fwd, dt.value, volSkew, volSkew.fstDerivative, volSkew.sndDerivative)
     val pdfQuoted = ksQuoted.map(impliedPdf)
     val atmStdv = volSkew(fwd) * math.sqrt(dt.value)
     val cdfInvN = NormalDistribution(fwd, atmStdv).inverseCumulativeProbability
@@ -59,4 +54,4 @@ object VolSkewSampler:
     val ks = ksLeft ++ ksMiddle ++ ksRight
     val vs = ks.map(volSkew)
     val pdf = ks.map(impliedPdf)
-    VolSkewSampler.Result(ksQuoted, vsQuoted, pdfQuoted, ks, vs, pdf, fwd)
+    VolatilitySkewSampler.Result(ksQuoted, vsQuoted, pdfQuoted, ks, vs, pdf, fwd)
