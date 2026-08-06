@@ -48,15 +48,13 @@ object VolSkewSampler:
     val ksMiddle = (1 to params.nSamplesMiddle).map(i => cdfInvN(i / (params.nSamplesMiddle + 1.0)))
     val ksRight = ksMiddle.lastOption.flatMap: kmMax =>
       ksQuoted.lastOption.map: kqMax =>
-        val kMax0 = Iterator.iterate(kmMax)(_ + atmStdv).find(_ >= kqMax).get
-        val kMax = kMax0 + params.nStdvsTail * atmStdv
-        uniform(kmMax, kMax, params.nSamplesTail).toList
+        val kMax = math.max(kmMax, kqMax) + params.nStdvsTail * atmStdv
+        uniform(kmMax, kMax, params.nSamplesTail).toList.drop(1)
     .orEmpty
     val ksLeft = ksMiddle.headOption.flatMap: kmMin =>
       ksQuoted.headOption.map: kqMin =>
-        val kMin0 = Iterator.iterate(kmMin)(_ - atmStdv).find(_ <= kqMin).get
-        val kMin = kMin0 - params.nStdvsTail * atmStdv
-        uniform(kMin, kmMin, params.nSamplesTail).toList
+        val kMin = math.min(kmMin, kqMin) - params.nStdvsTail * atmStdv
+        uniform(kMin, kmMin, params.nSamplesTail).toList.dropRight(1)
     .orEmpty
     val ks = ksLeft ++ ksMiddle ++ ksRight
     val vs = ks.map(volSkew)
