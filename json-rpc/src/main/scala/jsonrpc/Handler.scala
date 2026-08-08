@@ -63,10 +63,14 @@ object Handler:
 
   private def arbitrageToJson(arb: Option[lib.Arbitrage]): Json =
     arb.map:
-      case lib.Arbitrage.LeftAsymptotic =>
-        JsonObject("type" -> "LeftAsymptotic".asJson).toJson
-      case lib.Arbitrage.RightAsymptotic =>
-        JsonObject("type" -> "RightAsymptotic".asJson).toJson
+      case lib.Arbitrage.LeftAsymptoticCDF =>
+        JsonObject("type" -> "LeftAsymptoticCDF".asJson).toJson
+      case lib.Arbitrage.LeftAsymptoticPut =>
+        JsonObject("type" -> "LeftAsymptoticPut".asJson).toJson
+      case lib.Arbitrage.RightAsymptoticCDF =>
+        JsonObject("type" -> "RightAsymptoticCDF".asJson).toJson
+      case lib.Arbitrage.RightAsymptoticCall =>
+        JsonObject("type" -> "RightAsymptoticCall".asJson).toJson
       case lib.Arbitrage.Density(leftStrike, rightStrike) =>
         JsonObject(
           "type" -> "Density".asJson,
