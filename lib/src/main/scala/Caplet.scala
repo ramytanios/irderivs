@@ -30,7 +30,7 @@ class Caplet[T: DateLike](
         Either.raiseWhen((interestEndAt - paymentAt).abs > 7)(
           Error.Generic(s"vanilla pricer does not allow payment convexity")
         )
-      .as:
+      .map: _ =>
         if detachment.isDetached(paymentAt, t) then 0.0
         else
           val d = discountCurve.discount(paymentAt)
