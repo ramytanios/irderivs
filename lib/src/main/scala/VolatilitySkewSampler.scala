@@ -28,8 +28,8 @@ object VolatilitySkewSampler:
       msQuoted: List[Moneyness],
       volSkew: VolatilitySkew,
       forward: Forward[T],
-      params: VolatilitySkewSampler.Params
-  ) =
+      params: Params
+  ): Result =
 
     val dt = t.yearFractionTo(expiry)(using lib.DateLike[T], DayCounter.Act365)
     val fwd = forward(expiry)
@@ -54,4 +54,4 @@ object VolatilitySkewSampler:
     val ks = ksLeft ++ ksMiddle ++ ksRight
     val vs = ks.map(volSkew)
     val pdf = ks.map(impliedPdf)
-    VolatilitySkewSampler.Result(ksQuoted, vsQuoted, pdfQuoted, ks, vs, pdf, fwd)
+    Result(ksQuoted, vsQuoted, pdfQuoted, ks, vs, pdf, fwd)

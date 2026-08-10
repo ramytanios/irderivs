@@ -60,7 +60,7 @@ class CDFInverterSuite extends munit.FunSuite:
     ).map(_ / 10000)
     val skew1 = VolatilitySkew(ks.toIndexedSeq, vs1.toIndexedSeq)
     CDFInverter(t, tExp, Nil, skew1, forward, params) match
-      case Left(Arbitrage.LeftAsymptotic) => ()
+      case Left(Arbitrage.LeftAsymptoticPut) => ()
       case other                          => fail(s"should have left asymptotic arbitrage, got $other")
 
   test("density arbitrage"):
@@ -82,5 +82,5 @@ class CDFInverterSuite extends munit.FunSuite:
     ).map(_ / 10000)
     val skew3 = VolatilitySkew(ks.toIndexedSeq, vs3.toIndexedSeq)
     CDFInverter(t, tExp, Nil, skew3, forward, params) match
-      case Left(Arbitrage.RightAsymptotic) => ()
+      case Left(Arbitrage.RightAsymptoticCall) => ()
       case other                           => fail(s"should have right asymptotic arbitrage, got $other")
