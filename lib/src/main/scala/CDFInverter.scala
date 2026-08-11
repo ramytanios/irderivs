@@ -44,12 +44,12 @@ object CDFInverter:
 
     val ksQuoted = msQuoted.map(_.value + fwd)
 
-    def middleStrikes =
+    def middleStrikes: Either[Arbitrage, IndexedSeq[Double]] =
       val dk = 1.0 / (params.nMiddle + 1)
       val strikes = (1 to params.nMiddle).map(i => cdfInvN(i * dk))
       strikes.asRight[Arbitrage]
 
-    def leftStrikes(kL: Double) =
+    def leftStrikes(kL: Double): Either[Arbitrage, IndexedSeq[Double]] =
       (if cdfImplied(kL) <= params.cdfThreshold then kL.asRight[Arbitrage]
        else
          val points = LazyList.range(1, params.nTailMax + 1)
@@ -67,7 +67,7 @@ object CDFInverter:
           Arbitrage.LeftAsymptoticPut
         )
 
-    def rightStrikes(kR: Double) =
+    def rightStrikes(kR: Double): Either[Arbitrage, IndexedSeq[Double]] =
       (if cdfImplied(kR) >= (1 - params.cdfThreshold) then kR.asRight[Arbitrage]
        else
          val points = LazyList.range(1, params.nTailMax + 1)
