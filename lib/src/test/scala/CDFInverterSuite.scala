@@ -33,7 +33,7 @@ class CDFInverterSuite extends munit.FunSuite:
 
   val forwardAtExp = forward.apply(tExp)
 
-  val params = Params()
+  val params = CDFInverter.Params(400, 40, 10, 0.001, 0.05)
 
   val ms = List(
     -4.00, -3.00, -2.00, -1.50, -1.00, -0.50, 0.00, 0.50, 1.00, 1.50, 2.00, 3.00, 4.00
@@ -48,7 +48,7 @@ class CDFInverterSuite extends munit.FunSuite:
     ).map(_ / 10000)
 
     val skew0 = VolatilitySkew(ks.toIndexedSeq, vs0.toIndexedSeq)
-    CDFInverter(t, tExp, skew0, forward, params) match
+    CDFInverter(t, tExp, Nil, skew0, forward, params) match
       case Left(value)  => fail(s"should be arbitrage free, got $value")
       case Right(value) => ()
 
@@ -59,8 +59,8 @@ class CDFInverterSuite extends munit.FunSuite:
       136.344, 159.253
     ).map(_ / 10000)
     val skew1 = VolatilitySkew(ks.toIndexedSeq, vs1.toIndexedSeq)
-    CDFInverter(t, tExp, skew1, forward, params) match
-      case Left(Arbitrage.LeftAsymptotic) => ()
+    CDFInverter(t, tExp, Nil, skew1, forward, params) match
+      case Left(Arbitrage.LeftAsymptoticPut) => ()
       case other                          => fail(s"should have left asymptotic arbitrage, got $other")
 
   test("density arbitrage"):
@@ -70,7 +70,7 @@ class CDFInverterSuite extends munit.FunSuite:
         113.598, 136.344, 159.253
       ).map(_ / 10000)
     val skew2 = VolatilitySkew(ks.toIndexedSeq, vs2.toIndexedSeq)
-    CDFInverter(t, tExp, skew2, forward, params) match
+    CDFInverter(t, tExp, Nil, skew2, forward, params) match
       case Left(Arbitrage.Density(_, _)) => ()
       case other                         => fail(s"shoud have density arbitrage, got $other")
 
@@ -81,6 +81,6 @@ class CDFInverterSuite extends munit.FunSuite:
       113.598, 170.123, 190.613
     ).map(_ / 10000)
     val skew3 = VolatilitySkew(ks.toIndexedSeq, vs3.toIndexedSeq)
-    CDFInverter(t, tExp, skew3, forward, params) match
-      case Left(Arbitrage.RightAsymptotic) => ()
+    CDFInverter(t, tExp, Nil, skew3, forward, params) match
+      case Left(Arbitrage.RightAsymptoticCall) => ()
       case other                           => fail(s"should have right asymptotic arbitrage, got $other")

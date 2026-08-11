@@ -63,10 +63,14 @@ object Handler:
 
   private def arbitrageToJson(arb: Option[lib.Arbitrage]): Json =
     arb.map:
-      case lib.Arbitrage.LeftAsymptotic =>
-        JsonObject("type" -> "LeftAsymptotic".asJson).toJson
-      case lib.Arbitrage.RightAsymptotic =>
-        JsonObject("type" -> "RightAsymptotic".asJson).toJson
+      case lib.Arbitrage.LeftAsymptoticCDF =>
+        JsonObject("type" -> "LeftAsymptoticCDF".asJson).toJson
+      case lib.Arbitrage.LeftAsymptoticPut =>
+        JsonObject("type" -> "LeftAsymptoticPut".asJson).toJson
+      case lib.Arbitrage.RightAsymptoticCDF =>
+        JsonObject("type" -> "RightAsymptoticCDF".asJson).toJson
+      case lib.Arbitrage.RightAsymptoticCall =>
+        JsonObject("type" -> "RightAsymptoticCall".asJson).toJson
       case lib.Arbitrage.Density(leftStrike, rightStrike) =>
         JsonObject(
           "type" -> "Density".asJson,
@@ -96,7 +100,7 @@ object Handler:
           params =>
             val market = Market[LocalDate](params.tRef, params.market, params.static)
             market.volCube(params.currency).flatMap:
-              case dtos.Volatility.Cube(cube, _, _) =>
+              case dtos.Volatility.Cube(cube, _) =>
                 val tenors = cube.keysIterator.toList
                 val expiries = cube.values.flatMap(_.keysIterator).toList.distinct
                 val api = new Api(market)
@@ -107,7 +111,7 @@ object Handler:
                   JsonObject("matrix" -> matrix.map((te, ex, ar) =>
                     (te, ex, arbitrageToJson(ar)).asJson
                   ).asJson).toJson
-              case dtos.Volatility.Flat(_, _) =>
+              case dtos.Volatility.Flat(_) =>
                 lib.Error.Generic("arbitrage matrix does not support flat cube").asLeft
         )
 

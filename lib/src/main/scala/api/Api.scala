@@ -4,7 +4,6 @@ import lib.*
 import lib.dtos
 import lib.quantities.Tenor
 import lib.syntax.*
-import org.apache.commons.math3.distribution.NormalDistribution
 
 class Api[T: lib.DateLike](val market: Market[T]):
 
@@ -39,15 +38,24 @@ class Api[T: lib.DateLike](val market: Market[T]):
           price <- caplet.price(market.t, volCube, fixings)
         yield price
 
+  private def readMarketQuotes(
+      currency: dtos.Currency,
+      tenor: Tenor,
+      expiry: Tenor
+  ): List[(dtos.Moneyness, Double)] =
+    market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry)).orEmpty
+
   def arbitrageCheck(
       currency: dtos.Currency,
       tenor: Tenor,
       expiry: Tenor
   ): Either[lib.Error, Option[Arbitrage]] =
     buildVolConventions(currency, tenor).flatMap: rate =>
-      val expiryT = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
-      buildVolSurface(currency, tenor).map(_(expiryT)).map: volSkew =>
-        CDFInverter(market.t, expiryT, volSkew, rate.forward, Params()).swap.toOption
+      val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
+      val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
+      val params = CDFInverter.Params()
+      buildVolSurface(currency, tenor).map(_(t)).map:
+        CDFInverter(market.t, t, msQuoted, _, rate.forward, params).swap.toOption
 
   def sampleVolSkew(
       currency: dtos.Currency,
@@ -56,59 +64,11 @@ class Api[T: lib.DateLike](val market: Market[T]):
       nSamplesMiddle: Int,
       nSamplesTail: Int,
       nStdvsTail: Int
-  ): Either[lib.Error, Api.SamplingResult] =
-    market.volCube(currency).map(_.unit).flatMap: volUnit =>
-      val volInUnit = volUnit match
-        case dtos.VolUnit.BpPerYear => (v: Double) => v * 10000
-      buildVolConventions(currency, tenor).flatMap: rate =>
-        given dtos.BusinessDayConvention = rate.bdConvention
-        val expiryT = rate.calendar.addBusinessPeriod(market.t, expiry)
-        val fwd = rate.forward(expiryT)
-        buildVolCube(currency).map: volCube =>
-          val dt = market.t.yearFractionTo(expiryT)(using lib.DateLike[T], DayCounter.Act365)
-          val volSkew = volCube(tenor)(expiryT)
-          val ksQuoted =
-            market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry))
-              .map(_.unzip._1.map(_.value + fwd)).orEmpty.toList
-          val vsQuoted = ksQuoted.map(volSkew andThen volInUnit)
-          val impliedPdf = bachelier.impliedDensity(
-            fwd,
-            dt.value,
-            volSkew,
-            volSkew.fstDerivative,
-            volSkew.sndDerivative
-          )
-          val pdfQuoted = ksQuoted.map(impliedPdf)
-          val atmStdv = volSkew(fwd) * math.sqrt(dt.value)
-          val cdfInvN = NormalDistribution(fwd, atmStdv).inverseCumulativeProbability
-          val ksMiddle = (1 to nSamplesMiddle).map(i => cdfInvN(i / (nSamplesMiddle + 1.0)))
-          val ksRight = ksMiddle.lastOption.flatMap: kmMax =>
-            ksQuoted.lastOption.map: kqMax =>
-              val kMax0 = Iterator.iterate(kmMax)(_ + atmStdv).find(_ >= kqMax).get
-              val kMax = kMax0 + nStdvsTail * atmStdv
-              val step = (kMax - kmMax) / nSamplesTail
-              if step == 0.0 then Nil else (1 to nSamplesTail).map(i => kmMax + i * step).toList
-          .orEmpty
-          val ksLeft = ksMiddle.headOption.flatMap: kmMin =>
-            ksQuoted.headOption.map: kqMin =>
-              val kMin0 = Iterator.iterate(kmMin)(_ - atmStdv).find(_ <= kqMin).get
-              val kMin = kMin0 - nStdvsTail * atmStdv
-              val step = (kmMin - kMin) / nSamplesTail
-              if step == 0.0 then Nil else (1 to nSamplesTail).map(i => kMin + (i - 1) * step).toList
-          .orEmpty
-          val ks = ksLeft ++ ksMiddle ++ ksRight
-          val vs = ks.map(volSkew andThen volInUnit)
-          val pdf = ks.map(impliedPdf)
-          Api.SamplingResult(ksQuoted, vsQuoted, pdfQuoted, ks, vs, pdf, fwd)
-
-object Api:
-
-  case class SamplingResult(
-      quotedStrikes: List[Double],
-      quotedVols: List[Double],
-      quotedPdf: List[Double],
-      strikes: List[Double],
-      vols: List[Double],
-      pdf: List[Double],
-      fwd: Double
-  )
+  ): Either[lib.Error, VolatilitySkewSampler.Result] =
+    buildVolConventions(currency, tenor).flatMap: rate =>
+      val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
+      buildVolCube(currency).map: volCube =>
+        val volSkew = volCube(tenor)(t)
+        val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
+        val params = VolatilitySkewSampler.Params(nSamplesMiddle, nSamplesTail, nStdvsTail)
+        VolatilitySkewSampler(market.t, t, msQuoted, volSkew, rate.forward, params)

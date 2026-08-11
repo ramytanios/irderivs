@@ -4,7 +4,6 @@ import lib.DateLike
 import lib.EitherSyntax
 import lib.api.*
 import lib.dtos
-import lib.dtos.VolUnit
 import lib.literals.*
 
 import java.time.LocalDate
@@ -78,10 +77,9 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
                     dtos.Moneyness(+0.0050) -> 74.0,
                     dtos.Moneyness(+0.0100) -> 90.0,
                     dtos.Moneyness(+0.0200) -> 93.0
-                  )
+                  ).map((m, v) => m -> v / 10000.0)
               )
           ),
-          VolUnit.BpPerYear,
           volConventions
         )
       ),
