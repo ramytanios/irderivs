@@ -13,6 +13,11 @@ enum Arbitrage:
 
 object CDFInverter:
 
+  // Note that this algorithm short-circuits as soon as the first arbitrage is found.
+  // Detecting, say, a left asymptotic arbitrage does not imply that the smile is free of
+  // density arbitrage. The intent is rather to detect one type of arbitrage, fix it, and
+  // then move on to the next.
+
   case class Params(
       nMiddle: Int = 500, // number of interior strikes
       nTail: Int = 50, // number strikes per tail
