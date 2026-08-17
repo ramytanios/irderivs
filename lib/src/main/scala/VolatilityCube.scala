@@ -30,8 +30,8 @@ object VolatilityCube:
 
           def impl(k: Double)(f: VolatilitySkew => Double => Double) =
             val m = k - forwards(tenor)(t)
-            if tenor < tenorMin then f(surfaces.head(1)(t))(forwards(tenorMin)(t) - m)
-            else if tenor > tenorMax then f(surfaces.last(1)(t))(forwards(tenorMax)(t) - m)
+            if tenor < tenorMin then f(surfaces.head(1)(t))(forwards(tenorMin)(t) + m)
+            else if tenor > tenorMax then f(surfaces.last(1)(t))(forwards(tenorMax)(t) + m)
             else
               surfaces.searchBy(_(0))(tenor) match
                 case BinarySearch.Found(i) => f(surfaces(i)(1)(t))(k)
@@ -40,8 +40,8 @@ object VolatilityCube:
                   val (tenorR, surfaceR) = surfaces(i)
                   val w = (tenor.toYearFraction - tenorL.toYearFraction) /
                     (tenorR.toYearFraction - tenorL.toYearFraction)
-                  (1 - w) * f(surfaceL(t))(forwards(tenorL)(t) - m) +
-                    w * f(surfaceR(t))(forwards(tenorR)(t) - m)
+                  (1 - w) * f(surfaceL(t))(forwards(tenorL)(t) + m) +
+                    w * f(surfaceR(t))(forwards(tenorR)(t) + m)
 
           def apply(k: Double): Double = impl(k)(_.apply)
 
