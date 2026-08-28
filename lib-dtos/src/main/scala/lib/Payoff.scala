@@ -19,7 +19,8 @@ enum Payoff[T]:
       paymentCurrency: Currency,
       strike: Double,
       discountCurve: Curve,
-      optionType: OptionType
+      optionType: OptionType,
+      fixings: Option[List[(T, Double)]]
   ) extends Payoff[T]
 
   case Swaption[T](
@@ -28,7 +29,8 @@ enum Payoff[T]:
       strike: Double,
       optionType: OptionType,
       annuity: Annuity,
-      discountCurve: Curve
+      discountCurve: Curve,
+      fixings: Option[List[(T, Double)]]
   ) extends Payoff[T]
 
   case BackwardLookingCaplet[T](
@@ -41,5 +43,6 @@ enum Payoff[T]:
       optionType: OptionType,
       discountCurve: Curve,
       stub: StubConvention,
-      direction: Direction
+      direction: Direction,
+      fixings: Option[List[(T, Double)]]
   ) extends Payoff[T]

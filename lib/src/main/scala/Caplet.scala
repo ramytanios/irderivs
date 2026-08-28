@@ -15,10 +15,11 @@ class Caplet[T: DateLike](
     val strike: Double,
     val discountCurve: YieldCurve[T],
     val optionType: dtos.OptionType,
-    val detachment: Detachment[T]
+    val detachment: Detachment[T],
+    val fixings: Map[T, Double]
 ):
 
-  def price(t: T, volSurface: VolatilitySurface[T], fixings: Map[T, Double]): Either[Error, Double] =
+  def price(t: T, volSurface: VolatilitySurface[T]): Either[Error, Double] =
 
     val (_, interestEndAt) = rate.interestPeriod(fixingAt)
 

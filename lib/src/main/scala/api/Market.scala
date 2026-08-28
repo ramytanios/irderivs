@@ -10,12 +10,6 @@ enum MarketError(msg: String) extends lib.Error(msg):
   case MissingYieldCurve(ccy: dtos.Currency, name: dtos.CurveId)
       extends MarketError(s"missing curve $name in ccy $ccy")
 
-  case MissingFixingOf(underlying: dtos.RateId)
-      extends MarketError(s"missing fixings of $underlying")
-
-  case MissingFixingAt[T](underlying: dtos.RateId, at: T)
-      extends MarketError(s"missing fixing of $underlying at $at")
-
   case MissingVolatility(currency: dtos.Currency)
       extends MarketError(s"missing vol cube of currency $currency")
 
@@ -31,8 +25,6 @@ trait Market[T]:
   def rate(name: dtos.RateId): Either[MarketError, dtos.Underlying]
 
   def yieldCurve(curve: dtos.Curve): Either[MarketError, dtos.YieldCurve[T]]
-
-  def fixings(rate: dtos.RateId): Either[MarketError, Seq[dtos.Fixing[T]]]
 
   def volCube(currency: dtos.Currency): Either[MarketError, dtos.Volatility]
 
@@ -56,7 +48,6 @@ object Market:
       curves = marketByCcy.flatMap((ccy, market) =>
         market.curves.map((name, curve) => dtos.Curve(ccy, name) -> curve)
       ).toMap,
-      fixingsByRate = marketByCcy.values.map(_.fixings).reduce(_ ++ _),
       volatilities = marketByCcy.view.mapValues(_.volatility).toMap,
       calendars = static.calendars
     )
@@ -65,7 +56,6 @@ object Market:
       tRef: T,
       rates: Map[dtos.RateId, dtos.Underlying],
       curves: Map[dtos.Curve, dtos.YieldCurve[T]],
-      fixingsByRate: Map[dtos.RateId, Seq[dtos.Fixing[T]]],
       volatilities: Map[dtos.Currency, dtos.Volatility],
       calendars: Map[dtos.CalendarId, dtos.Calendar[T]]
   ): Market[T] = new Market[T]:
@@ -79,9 +69,6 @@ object Market:
 
     def yieldCurve(curve: dtos.Curve): Either[MarketError, dtos.YieldCurve[T]] =
       curves.get(curve).toRight(MissingYieldCurve(curve.currency, curve.name))
-
-    def fixings(rate: dtos.RateId): Either[MarketError, Seq[dtos.Fixing[T]]] =
-      fixingsByRate.get(rate).toRight(MissingFixingOf(rate))
 
     def volCube(currency: dtos.Currency): Either[MarketError, dtos.Volatility] =
       volatilities.get(currency).toRight(MissingVolatility(currency))

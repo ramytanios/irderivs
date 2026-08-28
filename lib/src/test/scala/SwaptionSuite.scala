@@ -55,13 +55,14 @@ class SwaptionSuite extends munit.FunSuite with lib.EitherSyntax:
       dtos.OptionType.Call,
       dtos.Annuity.Physical,
       discountCurve,
-      lib.Detachment.default
+      lib.Detachment.default,
+      Map.empty
     )
 
-    swaptionPhysical.price(t, volSurface, Map.empty).failOrAssert: price =>
+    swaptionPhysical.price(t, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.020045814355300937, 1e-10)
 
-    swaptionPhysical.price(fixingAt, volSurface, Map.empty).failOrAssert: price =>
+    swaptionPhysical.price(fixingAt, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.0, 1e-10)
 
     val swaptionCash = new Swaption(
@@ -71,8 +72,9 @@ class SwaptionSuite extends munit.FunSuite with lib.EitherSyntax:
       dtos.OptionType.Call,
       dtos.Annuity.Cash,
       discountCurve,
-      lib.Detachment.default
+      lib.Detachment.default,
+      Map.empty
     )
 
-    swaptionCash.price(endAt, volSurface, Map.empty).failOrAssert: price =>
+    swaptionCash.price(endAt, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.0, 1e-10)

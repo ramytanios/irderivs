@@ -12,12 +12,13 @@ class Swaption[T: DateLike](
     val optionType: dtos.OptionType,
     val annuity: dtos.Annuity,
     val discountCurve: YieldCurve[T],
-    val detachment: Detachment[T]
+    val detachment: Detachment[T],
+    val fixings: Map[T, Double]
 ):
 
   given DayCounter = rate.fixedDayCounter
 
-  def price(t: T, volSurface: VolatilitySurface[T], fixings: Map[T, Double]): Either[Error, Double] =
+  def price(t: T, volSurface: VolatilitySurface[T]): Either[Error, Double] =
     val fwd = rate.forward(fixingAt)
     val vol = volSurface(fixingAt)(strike)
     val (swapStartAt, swapEndAt) = rate.interestPeriod(fixingAt)

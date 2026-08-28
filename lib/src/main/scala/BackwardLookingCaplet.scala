@@ -17,11 +17,12 @@ class BackwardLookingCaplet[T: DateLike](
     val discountCurve: YieldCurve[T],
     val stub: dtos.StubConvention,
     val direction: dtos.Direction,
-    val detachment: Detachment[T]
+    val detachment: Detachment[T],
+    val fixings: Map[T, Double]
 ):
   private val noHolidaysCal = Calendar.all
 
-  def price(t: T, cube: VolatilityCube[T], fixings: Map[T, Double]): Either[Error, Double] =
+  def price(t: T, cube: VolatilityCube[T]): Either[Error, Double] =
 
     val discount = discountCurve.discount(paymentAt)
 

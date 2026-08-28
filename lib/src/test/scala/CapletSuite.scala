@@ -48,14 +48,29 @@ class CapletSuite extends munit.FunSuite with lib.EitherSyntax:
       strike,
       discountCurve,
       dtos.OptionType.Call,
-      Detachment.default
+      Detachment.default,
+      Map.empty
     )
 
-    caplet.price(t, volSurface, Map.empty).failOrAssert: price =>
+    caplet.price(t, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.0025670027485647476, 1e-10)
 
-    caplet.price(endAt, volSurface, Map.empty).failOrAssert: price =>
+    caplet.price(endAt, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.0, 1e-10, s"payoff detached at $endAt")
 
-    caplet.price(fixingAt, volSurface, Map(fixingAt -> strike)).failOrAssert: price =>
+    val capletWithFixing = new Caplet(
+      libor,
+      fixingAt,
+      startAt,
+      endAt,
+      endAt,
+      dtos.Currency.USD,
+      strike,
+      discountCurve,
+      dtos.OptionType.Call,
+      Detachment.default,
+      Map(fixingAt -> strike)
+    )
+
+    capletWithFixing.price(fixingAt, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.0, 1e-10, s"rate already fixed at $fixingAt")

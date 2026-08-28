@@ -60,7 +60,6 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
           dtos.Curve(dtos.Currency.USD, singleCurveId) ->
             dtos.YieldCurve.ContinuousCompounding(0.02)
         ),
-      fixingsByRate = Map.empty,
       volatilities = Map(
         dtos.Currency.USD -> dtos.Volatility.Cube(
           Map(
@@ -99,7 +98,8 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
       dtos.Currency.USD,
       0.009887915724457295,
       dtos.Curve(dtos.Currency.USD, singleCurveId),
-      dtos.OptionType.Call
+      dtos.OptionType.Call,
+      None
     )
 
     new Api(market).price(caplet).failOrAssert: price =>

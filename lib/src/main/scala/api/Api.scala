@@ -17,8 +17,7 @@ class Api[T: lib.DateLike](val market: Market[T]):
           caplet <- buildCaplet(p)
           rate <- caplet.rate.asRight
           volSurface <- buildVolSurface(caplet.paymentCurrency, rate.tenor)
-          fixings <- buildFixings(p.rate)
-          price <- caplet.price(market.t, volSurface, fixings)
+          price <- caplet.price(market.t, volSurface)
         yield price
 
       case p: dtos.Payoff.Swaption[T] =>
@@ -26,16 +25,14 @@ class Api[T: lib.DateLike](val market: Market[T]):
           swaption <- buildSwaption(p)
           rate <- swaption.rate.asRight
           volSurface <- buildVolSurface(rate.currency, rate.tenor)
-          fixings <- buildFixings(p.rate)
-          price <- swaption.price(market.t, volSurface, fixings)
+          price <- swaption.price(market.t, volSurface)
         yield price
 
       case p: dtos.Payoff.BackwardLookingCaplet[T] =>
         for
           caplet <- buildBackwardLookingCaplet(p)
           volCube <- buildVolCube(caplet.rate.currency)
-          fixings <- buildFixings(p.rate)
-          price <- caplet.price(market.t, volCube, fixings)
+          price <- caplet.price(market.t, volCube)
         yield price
 
   private def readMarketQuotes(

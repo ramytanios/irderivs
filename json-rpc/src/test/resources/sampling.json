@@ -23,7 +23,6 @@
           "type": "ContinuousCompounding"
         }
       },
-      "fixings": {},
       "volatility": {
         "type": "Cube",
         "unit": "BpPerYear",

@@ -20,15 +20,6 @@ class Lib[T: lib.DateLike](market: Market[T]):
     Either.catchNonFatal(lib.Calendar.fromHolidays(calendar.holidays.toIndexedSeq)).leftMap: th =>
       lib.Error.Generic(s"unable to build calendar: ${th.getMessage}")
 
-  def buildFixings(rate: dtos.RateId): Either[lib.Error, Map[T, Double]] =
-    market.fixings(rate).orElse(Seq.empty.asRight).flatMap: fixings =>
-      fixings.groupBy(_.t).toSeq.traverse: (fixingAt, all) =>
-        all.headOption.toRight(MarketError.MissingFixingAt(
-          rate,
-          fixingAt
-        )).map(_.value).tupleLeft(fixingAt)
-      .map(_.toMap)
-
   def buildVolSurface(
       currency: dtos.Currency,
       tenor: lib.quantities.Tenor
@@ -197,7 +188,8 @@ class Lib[T: lib.DateLike](market: Market[T]):
           caplet.strike,
           discountCurve,
           caplet.optionType,
-          lib.Detachment.default[T]
+          lib.Detachment.default[T],
+          caplet.fixings.orEmpty.toMap
         )
 
   def buildSwaption(swaption: dtos.Payoff.Swaption[T]): Either[lib.Error, lib.Swaption[T]] =
@@ -212,7 +204,8 @@ class Lib[T: lib.DateLike](market: Market[T]):
             swaption.optionType,
             swaption.annuity,
             discountCurve,
-            lib.Detachment.default[T]
+            lib.Detachment.default[T],
+            swaption.fixings.orEmpty.toMap
           )
 
   def buildBackwardLookingCaplet(caplet: dtos.Payoff.BackwardLookingCaplet[T])
@@ -230,5 +223,6 @@ class Lib[T: lib.DateLike](market: Market[T]):
           discountCurve,
           caplet.stub,
           caplet.direction,
-          lib.Detachment.default[T]
+          lib.Detachment.default[T],
+          caplet.fixings.orEmpty.toMap
         )
