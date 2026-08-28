@@ -49,7 +49,7 @@ class Swaption[T: DateLike](
         else
           val discount = discountCurve.discount(paymentAt)
           if t >= fixingAt then
-            val value = fixings(t)
+            val value = fixings.getOrElse(t, rate.forward(t))
             val cash = cashAnnuity(value)
             (discount * cash * max(optionType.sign * (value - strike), 0.0)).asRight[Error]
           else

@@ -42,7 +42,7 @@ class BackwardLookingCaplet[T: DateLike](
     def futPrice(futRate: CompoundedRate[T], futStrike: Double): Either[Error, Double] =
       given DayCounter = DayCounter.Act365
       val schedule = futRate.schedule
-      futRate.forward(t, fixings).map: forward =>
+      futRate.forward(t).map: forward =>
         val futLibor = syntheticFutLibor(futRate.from, futRate.to)
         val vol = cube(futLibor.tenor)(futRate.firstFixingAt)(futStrike)
         val dt = t.yearFractionTo(futRate.firstFixingAt) +
@@ -63,20 +63,21 @@ class BackwardLookingCaplet[T: DateLike](
           .flatMap: _ =>
             if detachment.isDetached(paymentAt, t) then Right(0.0)
             else
-              val fullRate = CompoundedRate[T](startAt, endAt, rate, stub, direction)
+              val fullRate = CompoundedRate[T](startAt, endAt, rate, stub, direction, fixings)
               val fullDcf = fullRate.dcf
               if t < fullRate.firstFixingAt then
                 futPrice(fullRate, strike).map(fullDcf * _)
               else if t >= fullRate.lastFixingAt then
-                val fullRateValue = (fullRate.fullCompoundingFactor(fixings) - 1) / fullDcf.value
+                val fullRateValue = (fullRate.fullCompoundingFactor() - 1) / fullDcf.value
                 Right:
                   fullDcf * discount * max(optionType.sign * (fullRateValue - strike), 0.0)
               else
                 val obsIdx = fullRate.findObservationIdx(t)
                 val futIdx = obsIdx + 1
                 val schedule = fullRate.schedule
-                val cf = fullRate.compoundingFactor(schedule(obsIdx).fixingAt, fixings)
-                val futRate = new CompoundedRate[T](rate, schedule.slice(futIdx, schedule.length))
+                val cf = fullRate.compoundingFactor(schedule(obsIdx).fixingAt)
+                val futRate =
+                  new CompoundedRate[T](rate, schedule.slice(futIdx, schedule.length), fixings)
                 val futDcf = futRate.dcf.value
                 val futStrike = ((fullDcf * strike + 1) / cf - 1) / futDcf
                 futPrice(futRate, futStrike).map(futDcf * cf * _)

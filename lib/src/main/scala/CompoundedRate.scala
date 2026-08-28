@@ -13,7 +13,8 @@ case class CompoundingPeriod[T](
 
 class CompoundedRate[T: DateLike](
     val rate: Libor[T],
-    val schedule: Vector[CompoundingPeriod[T]]
+    val schedule: Vector[CompoundingPeriod[T]],
+    val fixings: Map[T, Double]
 ):
 
   given DayCounter = rate.dayCounter
@@ -26,34 +27,33 @@ class CompoundedRate[T: DateLike](
   val firstFixingAt = schedule.head.fixingAt
   val lastFixingAt = schedule.last.fixingAt
 
-  def compoundingFactor(toInclusive: T, fixings: Map[T, Double]): Double =
+  def compoundingFactor(toInclusive: T): Double =
     schedule.collect:
       case CompoundingPeriod(fixingAt, startAt, endAt) if fixingAt <= toInclusive =>
-        val fixing = fixings(fixingAt)
+        val fixing = fixings.getOrElse(fixingAt, rate.forward(fixingAt))
         (1 + startAt.yearFractionTo(endAt) * fixing)
     .product
 
-  def fullCompoundingFactor(fixings: Map[T, Double]) = compoundingFactor(lastFixingAt, fixings)
+  def fullCompoundingFactor() = compoundingFactor(lastFixingAt)
 
   def findObservationIdx(t: T): Int =
     schedule.searchBy(_.fixingAt)(t) match
       case Found(i)        => i
       case InsertionLoc(i) => i - 1
 
-  def forward(t: T, fixings: Map[T, Double]): Either[Error, Double] =
+  def forward(t: T): Either[Error, Double] =
     Either.raiseWhen(t > lastFixingAt)(
       Error.Generic(s"$t is after last fixing $lastFixingAt")
     ).map: _ =>
       if t < firstFixingAt then
         1.0 / rate.resetCurve.discount(from, to)
-      else if t == lastFixingAt then fullCompoundingFactor(fixings)
+      else if t == lastFixingAt then fullCompoundingFactor()
       else
         val obsIdx = findObservationIdx(t)
         val futIdx = obsIdx + 1
-        compoundingFactor(schedule(obsIdx).fixingAt, fixings) /
+        compoundingFactor(schedule(obsIdx).fixingAt) /
           rate.resetCurve.discount(schedule(futIdx).startAt, to)
-    .map: f =>
-      (f - 1.0) / dcf.value
+    .map(f => (f - 1.0) / dcf.value)
 
 object CompoundedRate:
 
@@ -62,7 +62,8 @@ object CompoundedRate:
       to: T,
       rate: Libor[T],
       stub: dtos.StubConvention,
-      direction: dtos.Direction
+      direction: dtos.Direction,
+      fixings: Map[T, Double]
   ): CompoundedRate[T] =
 
     val schedule: Vector[CompoundingPeriod[T]] =
@@ -74,4 +75,4 @@ object CompoundedRate:
             CompoundingPeriod(fixingDate, t0, t1)
         .toVector
 
-    new CompoundedRate[T](rate, schedule)
+    new CompoundedRate[T](rate, schedule, fixings)

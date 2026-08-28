@@ -37,7 +37,7 @@ class Caplet[T: DateLike](
           val d = discountCurve.discount(paymentAt)
           val dcf = startAt.yearFractionTo(endAt)(using DateLike[T], rate.dayCounter)
           if t >= fixingAt then
-            val rate = fixings(fixingAt)
+            val rate = fixings.getOrElse(fixingAt, this.rate.forward(fixingAt))
             d * dcf.value * max(optionType.sign * (rate - strike), 0.0)
           else
             val f = rate.forward(fixingAt)

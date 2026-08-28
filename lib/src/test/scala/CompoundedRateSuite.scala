@@ -33,14 +33,14 @@ class CompoundedRateSuite extends munit.FunSuite with lib.EitherSyntax:
       d"2025-09-01" -> 0.05
     )
 
-    CompoundedRate(d"2025-09-02", d"2025-09-05", dailyRate, stub, direction).forward(t, fixings)
+    CompoundedRate(d"2025-09-02", d"2025-09-05", dailyRate, stub, direction, fixings).forward(t)
       .failOrAssert: fwd =>
         assertEqualsDouble(fwd, 0.0493252031146518, tol, s"t < T_0")
 
-    CompoundedRate(d"2025-08-29", d"2025-09-05", dailyRate, stub, direction).forward(t, fixings)
+    CompoundedRate(d"2025-08-29", d"2025-09-05", dailyRate, stub, direction, fixings).forward(t)
       .failOrAssert: fwd =>
         assertEqualsDouble(fwd, 0.0497255228446493, tol, s"T_k <= t < T_{k+1}")
 
-    CompoundedRate(d"2025-08-26", d"2025-09-02", dailyRate, stub, direction).forward(t, fixings)
+    CompoundedRate(d"2025-08-26", d"2025-09-02", dailyRate, stub, direction, fixings).forward(t)
       .failOrAssert: fwd =>
         assertEqualsDouble(fwd, 0.050017860174422, tol, s"t = T_n")
