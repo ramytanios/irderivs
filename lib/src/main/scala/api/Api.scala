@@ -30,9 +30,9 @@ class Api[T: lib.DateLike](val market: Market[T]):
 
       case p: dtos.Payoff.BackwardLookingCaplet[T] =>
         for
-          caplet <- buildBackwardLookingCaplet(p)
-          volCube <- buildVolCube(caplet.rate.currency)
-          price <- caplet.price(market.t, volCube)
+          rfr <- buildBackwardLookingCaplet(p)
+          volCube <- buildVolCube(rfr.rate.currency)
+          price <- rfr.price(market.t, volCube)
         yield price
 
   private def readMarketQuotes(

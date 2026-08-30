@@ -9,11 +9,11 @@ import java.time.LocalDate
 
 class CDFInverterSuite extends munit.FunSuite:
 
-  val t = d"2025-10-13"
+  val t0 = d"2025-10-13"
 
   val usd = dtos.Currency.USD
 
-  val resetCurve = YieldCurve.continuousCompounding(t, 0.05, DayCounter.Act365)
+  val resetCurve = YieldCurve.continuousCompounding(t0, 0.05, DayCounter.Act365)
 
   val calendar = Calendar.all
 
@@ -29,9 +29,9 @@ class CDFInverterSuite extends munit.FunSuite:
 
   val forward = libor.forward
 
-  val tExp = DateLike[LocalDate].plusPeriod(t, Tenor.`1Y`)
+  val t = DateLike[LocalDate].plusPeriod(t0, Tenor.`1Y`)
 
-  val forwardAtExp = forward.apply(tExp)
+  val forwardAtExp = forward.apply(t)
 
   val params = CDFInverter.Params(400, 40, 10, 0.001, 0.05)
 
@@ -48,7 +48,7 @@ class CDFInverterSuite extends munit.FunSuite:
     ).map(_ / 10000)
 
     val skew0 = VolatilitySkew(ks.toIndexedSeq, vs0.toIndexedSeq)
-    CDFInverter(t, tExp, Nil, skew0, forward, params) match
+    CDFInverter(t0, t, Nil, skew0, forward, params) match
       case Left(value)  => fail(s"should be arbitrage free, got $value")
       case Right(value) => ()
 
@@ -59,7 +59,7 @@ class CDFInverterSuite extends munit.FunSuite:
       136.344, 159.253
     ).map(_ / 10000)
     val skew1 = VolatilitySkew(ks.toIndexedSeq, vs1.toIndexedSeq)
-    CDFInverter(t, tExp, Nil, skew1, forward, params) match
+    CDFInverter(t0, t, Nil, skew1, forward, params) match
       case Left(Arbitrage.LeftAsymptoticPut) => ()
       case other                             => fail(s"should have left asymptotic arbitrage, got $other")
 
@@ -70,7 +70,7 @@ class CDFInverterSuite extends munit.FunSuite:
         113.598, 136.344, 159.253
       ).map(_ / 10000)
     val skew2 = VolatilitySkew(ks.toIndexedSeq, vs2.toIndexedSeq)
-    CDFInverter(t, tExp, Nil, skew2, forward, params) match
+    CDFInverter(t0, t, Nil, skew2, forward, params) match
       case Left(Arbitrage.Density(_, _)) => ()
       case other                         => fail(s"shoud have density arbitrage, got $other")
 
@@ -81,6 +81,6 @@ class CDFInverterSuite extends munit.FunSuite:
       113.598, 170.123, 190.613
     ).map(_ / 10000)
     val skew3 = VolatilitySkew(ks.toIndexedSeq, vs3.toIndexedSeq)
-    CDFInverter(t, tExp, Nil, skew3, forward, params) match
+    CDFInverter(t0, t, Nil, skew3, forward, params) match
       case Left(Arbitrage.RightAsymptoticCall) => ()
       case other                               => fail(s"should have right asymptotic arbitrage, got $other")

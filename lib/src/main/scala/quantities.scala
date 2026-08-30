@@ -80,13 +80,13 @@ object quantities:
 
       def unary_- : Tenor = t.copy(length = -1 * t.length)
       def *(factor: Int): Tenor = t.copy(length = factor * t.length)
-      def toYearFraction: YearFraction = t.unit match
+      def toYf: YearFraction = t.unit match
         case Unit.Day   => t.length / 365.0
         case Unit.Week  => t.length * 7 / 365.0
         case Unit.Month => t.length * 1 / 12.0
         case Unit.Year  => t.length
 
-    given Ordering[Tenor] = Ordering.by(_.toYearFraction)
+    given Ordering[Tenor] = Ordering.by(_.toYf)
 
     given fromDto: Conversion[dtos.Tenor, Tenor] = t =>
       t.unit match

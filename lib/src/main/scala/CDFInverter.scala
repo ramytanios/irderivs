@@ -55,15 +55,15 @@ object CDFInverter:
       strikes.asRight[Arbitrage]
 
     def leftStrikes(kL: Double): Either[Arbitrage, IndexedSeq[Double]] =
-      (if cdfImplied(kL) <= params.cdfThreshold then kL.asRight[Arbitrage]
+      val kStart = math.min(kL, ksQuoted.minOption.getOrElse(kL))
+      (if cdfImplied(kStart) <= params.cdfThreshold then kStart.asRight[Arbitrage]
        else
          val points = LazyList.range(1, params.nTailMax + 1)
-           .map(kL - _ * atmStdv)
+           .map(kStart - _ * atmStdv)
            .map(k => k -> cdfImplied(k))
          val cut = points.indexWhere((_, cdf) => cdf <= params.cdfThreshold)
          Either.cond(cut >= 0, points(cut)(0), Arbitrage.LeftAsymptoticCDF)
-      ) .flatMap: kMin0 =>
-        val kMin = math.min(kMin0, ksQuoted.minOption.getOrElse(kMin0))
+      ) .flatMap: kMin =>
         val put = bachelier.price(dtos.OptionType.Put, fwd, kMin, dt, vol(kMin), 1.0)
         val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, vol(fwd), 1.0)
         Either.cond(
@@ -73,15 +73,15 @@ object CDFInverter:
         )
 
     def rightStrikes(kR: Double): Either[Arbitrage, IndexedSeq[Double]] =
-      (if cdfImplied(kR) >= (1 - params.cdfThreshold) then kR.asRight[Arbitrage]
+      val kStart = math.max(kR, ksQuoted.maxOption.getOrElse(kR))
+      (if cdfImplied(kStart) >= (1 - params.cdfThreshold) then kStart.asRight[Arbitrage]
        else
          val points = LazyList.range(1, params.nTailMax + 1)
-           .map(kR + _ * atmStdv)
+           .map(kStart + _ * atmStdv)
            .map(k => k -> cdfImplied(k))
          val cut = points.indexWhere((_, cdf) => cdf >= (1 - params.cdfThreshold))
          Either.cond(cut >= 0, points(cut)(0), Arbitrage.RightAsymptoticCDF)
-      ) .flatMap: kMax0 =>
-        val kMax = math.max(kMax0, ksQuoted.maxOption.getOrElse(kR))
+      ) .flatMap: kMax =>
         val call = bachelier.price(dtos.OptionType.Call, fwd, kMax, dt, vol(kMax), 1.0)
         val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, vol(fwd), 1.0)
         Either.cond(
@@ -94,9 +94,8 @@ object CDFInverter:
       mks <- middleStrikes
       lks <- leftStrikes(mks.head)
       rks <- rightStrikes(mks.last)
-      // add quoted strikes to make sure density check hits exactly the quotes
       ks = (lks ++ mks ++ rks ++ ksQuoted.toIndexedSeq).distinct.sorted
-      vs = ks.map(cdfImplied)
-      _ <- vs.indices.init.find(i => vs(i) >= vs(i + 1)).toLeft(())
+      cs = ks.map(cdfImplied)
+      _ <- cs.indices.init.find(i => cs(i) >= cs(i + 1)).toLeft(())
         .leftMap(i => Arbitrage.Density(ks(i), ks(i + 1)))
-    yield LinearInterpolation.withLinearExtrapolation(vs, ks)
+    yield LinearInterpolation.withLinearExtrapolation(cs, ks)

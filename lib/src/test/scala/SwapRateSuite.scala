@@ -10,9 +10,9 @@ class SwapRateSuite extends munit.FunSuite:
 
   test("forward calculation"):
 
-    val t = d"2025-10-21"
+    val t0 = d"2025-10-21"
 
-    val resetCurve = YieldCurve.continuousCompounding(t, 0.02, DayCounter.Act365)
+    val resetCurve = YieldCurve.continuousCompounding(t0, 0.02, DayCounter.Act365)
     val discountCurve = resetCurve
 
     val floatingRate = new Libor(
@@ -39,5 +39,5 @@ class SwapRateSuite extends munit.FunSuite:
       discountCurve
     )
 
-    val fixingAt = Calendar.all.addBusinessPeriod(t, Tenor.`1Y`)(using ModifiedFollowing)
+    val fixingAt = Calendar.all.addBusinessPeriod(t0, Tenor.`1Y`)(using ModifiedFollowing)
     assertEqualsDouble(rate.forward(fixingAt), 0.019924721293744743, 1e-12)

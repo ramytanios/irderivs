@@ -10,9 +10,9 @@ class CapletSuite extends munit.FunSuite with lib.EitherSyntax:
 
   test("caplet price"):
 
-    val t = d"2025-10-12"
+    val t0 = d"2025-10-12"
 
-    val resetCurve = YieldCurve.continuousCompounding(t, 0.02, DayCounter.Act365)
+    val resetCurve = YieldCurve.continuousCompounding(t0, 0.02, DayCounter.Act365)
     val discountCurve = resetCurve
 
     val libor = new Libor(
@@ -25,7 +25,7 @@ class CapletSuite extends munit.FunSuite with lib.EitherSyntax:
       dtos.BusinessDayConvention.ModifiedFollowing
     )
 
-    val fixingAt = DateLike[LocalDate].plusPeriod(t, Tenor.`1Y`)
+    val fixingAt = DateLike[LocalDate].plusPeriod(t0, Tenor.`1Y`)
     val (startAt, endAt) = libor.interestPeriod(fixingAt)
 
     val volSurface = VolatilitySurface.fromMoneynessSkew(
@@ -52,7 +52,7 @@ class CapletSuite extends munit.FunSuite with lib.EitherSyntax:
       Map.empty
     )
 
-    caplet.price(t, volSurface).failOrAssert: price =>
+    caplet.price(t0, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.0025670027485647476, 1e-10)
 
     caplet.price(endAt, volSurface).failOrAssert: price =>

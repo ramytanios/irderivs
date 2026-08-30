@@ -10,9 +10,9 @@ class SwaptionSuite extends munit.FunSuite with lib.EitherSyntax:
 
   test("swaption price"):
 
-    val t = d"2025-11-01"
+    val t0 = d"2025-11-01"
 
-    val resetCurve = YieldCurve.continuousCompounding(t, 0.02, DayCounter.Act365)
+    val resetCurve = YieldCurve.continuousCompounding(t0, 0.02, DayCounter.Act365)
     val discountCurve = resetCurve
 
     val libor = new Libor(
@@ -39,7 +39,7 @@ class SwaptionSuite extends munit.FunSuite with lib.EitherSyntax:
       discountCurve
     )
 
-    val fixingAt = DateLike[LocalDate].plusPeriod(t, Tenor.`1Y`)
+    val fixingAt = DateLike[LocalDate].plusPeriod(t0, Tenor.`1Y`)
     val (startAt, endAt) = libor.interestPeriod(fixingAt)
 
     val volSurface = VolatilitySurface.fromMoneynessSkew(
@@ -59,7 +59,7 @@ class SwaptionSuite extends munit.FunSuite with lib.EitherSyntax:
       Map.empty
     )
 
-    swaptionPhysical.price(t, volSurface).failOrAssert: price =>
+    swaptionPhysical.price(t0, volSurface).failOrAssert: price =>
       assertEqualsDouble(price, 0.020045814355300937, 1e-10)
 
     swaptionPhysical.price(fixingAt, volSurface).failOrAssert: price =>

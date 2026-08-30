@@ -3,7 +3,7 @@ package lib.api
 import cats.syntax.all.*
 import lib.dtos
 import lib.quantities.*
-import lib.quantities.Tenor.toYearFraction
+import lib.quantities.Tenor.toYf
 
 import scala.math.Ordering.Implicits.*
 
@@ -52,8 +52,7 @@ class Lib[T: lib.DateLike](market: Market[T]):
           buildVolConventions(conventions, tenor).map(_.forward).tupleLeft(tenor)
         .map(_.toMap)
         (surfaces, forwards).tupled.map: (surfaces, forwards) =>
-          val sortedSurfaces = surfaces.sortBy((t, _) => t.toYearFraction.value)
-            .map((t, e) => (t: Tenor) -> e)
+          val sortedSurfaces = surfaces.sortBy((t, _) => t.toYf.value).map((t, e) => (t: Tenor) -> e)
           lib.VolatilityCube[T](sortedSurfaces, forwards)
       case dtos.Volatility.Flat(vol) =>
         lib.VolatilityCube.flat[T](vol).asRight[lib.Error]

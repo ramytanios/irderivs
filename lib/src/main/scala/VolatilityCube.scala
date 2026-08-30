@@ -17,7 +17,7 @@ object VolatilityCube:
   ): VolatilityCube[T] =
     val tenors = surfaces.map(_(0))
     require(
-      tenors.map(_.toYearFraction.value).isStrictlyIncreasing,
+      tenors.map(_.toYf.value).isStrictlyIncreasing,
       s"surfaces must be order by tenor, got ${tenors.mkString(",")}"
     )
 
@@ -38,8 +38,7 @@ object VolatilityCube:
                 case BinarySearch.InsertionLoc(i) =>
                   val (tenorL, surfaceL) = surfaces(i - 1)
                   val (tenorR, surfaceR) = surfaces(i)
-                  val w = (tenor.toYearFraction - tenorL.toYearFraction) /
-                    (tenorR.toYearFraction - tenorL.toYearFraction)
+                  val w = (tenor.toYf - tenorL.toYf) / (tenorR.toYf - tenorL.toYf)
                   (1 - w) * f(surfaceL(t))(forwards(tenorL)(t) + m) +
                     w * f(surfaceR(t))(forwards(tenorR)(t) + m)
 

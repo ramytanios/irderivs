@@ -11,9 +11,9 @@ class LiborSuite extends munit.FunSuite:
 
   test("forward calculation"):
 
-    val t = d"2025-10-12"
+    val t0 = d"2025-10-12"
 
-    val resetCurve = YieldCurve.continuousCompounding(t, 0.02, DayCounter.Act365)
+    val resetCurve = YieldCurve.continuousCompounding(t0, 0.02, DayCounter.Act365)
 
     val libor = new Libor(
       dtos.Currency.USD,
@@ -25,5 +25,5 @@ class LiborSuite extends munit.FunSuite:
       ModifiedFollowing
     )
 
-    val fixingAt = Calendar.all.addBusinessPeriod(t, Tenor.`1Y`)(using ModifiedFollowing)
+    val fixingAt = Calendar.all.addBusinessPeriod(t0, Tenor.`1Y`)(using ModifiedFollowing)
     assertEqualsDouble(libor.forward(fixingAt), 0.019726567846252152, 1e-12)
