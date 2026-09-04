@@ -8,10 +8,10 @@ ws:
   websocat ws://localhost:8090/api/ws
 
 scalafmt:
-    sbt scalafmtAll
+    sbtn scalafmtAll
 
 scalafix:
-    sbt 'scalafixEnable; scalafixAll'
+    sbtn 'scalafixEnable; scalafixAll'
 
 fix:
     just scalafmt scalafix

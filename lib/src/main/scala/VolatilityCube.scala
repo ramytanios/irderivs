@@ -13,7 +13,7 @@ object VolatilityCube:
 
   def apply[T](
       surfaces: IndexedSeq[(Tenor, VolatilitySurface[T])],
-      forwards: Map[Tenor, Forward[T]]
+      forward: Tenor => Forward[T]
   ): VolatilityCube[T] =
     val tenors = surfaces.map(_(0))
     require(
@@ -29,9 +29,9 @@ object VolatilityCube:
         new VolatilitySkew:
 
           def impl(k: Double)(f: VolatilitySkew => Double => Double) =
-            val m = k - forwards(tenor)(t)
-            if tenor < tenorMin then f(surfaces.head(1)(t))(forwards(tenorMin)(t) + m)
-            else if tenor > tenorMax then f(surfaces.last(1)(t))(forwards(tenorMax)(t) + m)
+            val m = k - forward(tenor)(t)
+            if tenor < tenorMin then f(surfaces.head(1)(t))(forward(tenorMin)(t) + m)
+            else if tenor > tenorMax then f(surfaces.last(1)(t))(forward(tenorMax)(t) + m)
             else
               surfaces.searchBy(_(0))(tenor) match
                 case BinarySearch.Found(i) => f(surfaces(i)(1)(t))(k)
@@ -39,8 +39,8 @@ object VolatilityCube:
                   val (tenorL, surfaceL) = surfaces(i - 1)
                   val (tenorR, surfaceR) = surfaces(i)
                   val w = (tenor.toYf - tenorL.toYf) / (tenorR.toYf - tenorL.toYf)
-                  (1 - w) * f(surfaceL(t))(forwards(tenorL)(t) + m) +
-                    w * f(surfaceR(t))(forwards(tenorR)(t) + m)
+                  (1 - w) * f(surfaceL(t))(forward(tenorL)(t) + m) +
+                    w * f(surfaceR(t))(forward(tenorR)(t) + m)
 
           def apply(k: Double): Double = impl(k)(_.apply)
 

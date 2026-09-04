@@ -48,16 +48,19 @@ class Lib[T: lib.DateLike](market: Market[T]):
         val surfaces = cube.toList.traverse: (tenor, _) =>
           buildVolSurface(currency, tenor).tupleLeft(tenor)
         .map(_.toIndexedSeq)
-        val forwards = cube.keys.map(t => (t: Tenor)).toList.traverse: tenor =>
-          buildVolConventions(conventions, tenor).map(_.forward).tupleLeft(tenor)
-        .map(_.toMap)
-        (surfaces, forwards).tupled.map: (surfaces, forwards) =>
+        val forward = (tenor: Tenor) =>
+          buildVolConventions(conventions, tenor).map(_.forward)
+            .valueOr(throw _) // TODO code smell
+        surfaces.map: surfaces =>
           val sortedSurfaces = surfaces.sortBy((t, _) => t.toYf.value).map((t, e) => (t: Tenor) -> e)
-          lib.VolatilityCube[T](sortedSurfaces, forwards)
+          lib.VolatilityCube[T](sortedSurfaces, forward)
       case dtos.Volatility.Flat(vol) =>
         lib.VolatilityCube.flat[T](vol).asRight[lib.Error]
 
-  def buildVolConventions(volConventions: dtos.VolatilityMarketConventions, tenor: Tenor) =
+  def buildVolConventions(
+      volConventions: dtos.VolatilityMarketConventions,
+      tenor: Tenor
+  ): Either[lib.Error, lib.Underlying[T]] =
     if (volConventions.boundaryTenor: Tenor) >= tenor then
       toLibor(volConventions.liborRate, tenor)
     else toSwapRate(volConventions.swapRate, tenor)
@@ -85,7 +88,10 @@ class Lib[T: lib.DateLike](market: Market[T]):
             libor.bdConvention
           )
 
-  private def toSwapRate(swapRate: dtos.VolatilityMarketConventions.SwapRate, tenor: Tenor) =
+  private def toSwapRate(
+      swapRate: dtos.VolatilityMarketConventions.SwapRate,
+      tenor: Tenor
+  ): Either[lib.Error, lib.SwapRate[T]] =
     buildYieldCurve(swapRate.discountCurve).flatMap: discountCurve =>
       buildLibor(swapRate.floatingRate).flatMap: liborRate =>
         market.calendar(swapRate.calendar).flatMap: calendar =>
@@ -104,7 +110,7 @@ class Lib[T: lib.DateLike](market: Market[T]):
               discountCurve
             )
 
-  private def toLibor(libor: dtos.Underlying.Libor) =
+  private def toLibor(libor: dtos.Underlying.Libor): Either[lib.Error, lib.Libor[T]] =
     buildYieldCurve(libor.resetCurve).flatMap: resetCurve =>
       market.calendar(libor.calendar).flatMap: calendar =>
         buildCalendar(calendar).map: calendar =>
@@ -118,7 +124,7 @@ class Lib[T: lib.DateLike](market: Market[T]):
             libor.bdConvention
           )
 
-  private def toSwapRate(swapRate: dtos.Underlying.SwapRate) =
+  private def toSwapRate(swapRate: dtos.Underlying.SwapRate): Either[lib.Error, lib.SwapRate[T]] =
     buildYieldCurve(swapRate.discountCurve).flatMap: discountCurve =>
       buildLibor(swapRate.floatingRate).flatMap: liborRate =>
         market.calendar(swapRate.calendar).flatMap: calendar =>
@@ -137,7 +143,8 @@ class Lib[T: lib.DateLike](market: Market[T]):
               discountCurve
             )
 
-  private def toCompoundedSwapRate(swapRate: dtos.Underlying.CompoundedSwapRate) =
+  private def toCompoundedSwapRate(swapRate: dtos.Underlying.CompoundedSwapRate)
+      : Either[lib.Error, lib.CompoundedSwapRate[T]] =
     buildYieldCurve(swapRate.discountCurve).flatMap: discountCurve =>
       buildLibor(swapRate.floatingRate).flatMap: liborRate =>
         market.calendar(swapRate.calendar).flatMap: calendar =>
