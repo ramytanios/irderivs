@@ -50,7 +50,7 @@ class BackwardLookingCaplet[T: DateLike](
             schedule(i).fixingAt.yearFractionTo(schedule(i + 1).fixingAt) *
               pow(schedule(i + 1).startAt.yearFractionTo(futRate.to).value, 2)
           ) / pow(futRate.from.yearFractionTo(futRate.to).value, 2)
-        bachelier.price(optionType, forward, futStrike, vol, dt, discount)
+        bachelier.price(optionType, forward, futStrike, dt, vol, discount)
 
     Either
       .raiseWhen(rate.currency != paymentCurrency)(
