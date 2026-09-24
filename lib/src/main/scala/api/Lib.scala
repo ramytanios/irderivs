@@ -61,9 +61,15 @@ class Lib[T: lib.DateLike](market: Market[T]):
       volConventions: dtos.VolatilityMarketConventions,
       tenor: Tenor
   ): Either[lib.Error, lib.Underlying[T]] =
-    if (volConventions.boundaryTenor: Tenor) >= tenor then
-      toLibor(volConventions.liborRate, tenor)
-    else toSwapRate(volConventions.swapRate, tenor)
+    val boundary: Tenor = volConventions.boundaryTenor
+    if tenor < boundary then toLibor(volConventions.liborRate, tenor)
+    else if tenor > boundary then toSwapRate(volConventions.swapRate, tenor)
+    else
+      volConventions.boundaryTenorKind match
+        case dtos.VolatilityMarketConventions.BoundaryTenorKind.Libor =>
+          toLibor(volConventions.liborRate, tenor)
+        case dtos.VolatilityMarketConventions.BoundaryTenorKind.Swap =>
+          toSwapRate(volConventions.swapRate, tenor)
 
   def buildVolConventions(
       currency: dtos.Currency,

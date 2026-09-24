@@ -1,17 +1,26 @@
 package lib.dtos
 
 import io.circe.*
-import io.circe.derivation.*
 import io.circe.derivation.Configuration
 import io.circe.derivation.ConfiguredCodec
+import io.circe.derivation.*
+
+import VolatilityMarketConventions.*
 
 case class VolatilityMarketConventions(
     boundaryTenor: Tenor,
-    liborRate: VolatilityMarketConventions.Libor,
-    swapRate: VolatilityMarketConventions.SwapRate
+    boundaryTenorKind: BoundaryTenorKind,
+    liborRate: Libor,
+    swapRate: SwapRate
 ) derives Codec
 
 object VolatilityMarketConventions:
+
+  object BoundaryTenorKind:
+    given Configuration = Configuration.default
+
+  enum BoundaryTenorKind derives ConfiguredEnumCodec:
+    case Libor, Swap
 
   case class Libor(
       currency: Currency,

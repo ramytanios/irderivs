@@ -53,7 +53,8 @@
               "currency": "EUR"
             }
           },
-          "boundaryTenor": "1Y"
+          "boundaryTenor": "1Y",
+          "boundaryTenorKind": "Swap"
         },
         "cube": {
           "3M": {

@@ -28,6 +28,7 @@
         "type": "Cube",
         "conventions": {
           "boundaryTenor": "10Y",
+          "boundaryTenorKind": "Swap",
           "liborRate": {
             "currency": "USD",
             "spotLag": 2,

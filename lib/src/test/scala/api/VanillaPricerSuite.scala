@@ -30,6 +30,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
 
     val volConventions = dtos.VolatilityMarketConventions(
       dtos.Tenor.`10Y`,
+      dtos.VolatilityMarketConventions.BoundaryTenorKind.Swap,
       dtos.VolatilityMarketConventions.Libor(
         dtos.Currency.USD,
         2,
