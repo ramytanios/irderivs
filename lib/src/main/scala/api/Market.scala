@@ -39,14 +39,14 @@ object Market:
 
   def apply[T](
       tRef: T,
-      marketByCcy: Map[dtos.Currency, dtos.CcyMarket[T]],
+      market: dtos.Market[T],
       static: dtos.Static[T]
   ): Market[T] =
     this.apply(
       tRef,
-      rates = marketByCcy.values.map(_.rates).reduce(_ ++ _),
-      curves = marketByCcy.flatMap((_, market) => market.curves).toMap,
-      volatilities = marketByCcy.view.mapValues(_.volatility).toMap,
+      rates = market.rates,
+      curves = market.currencies.flatMap((_, ccyMarket) => ccyMarket.curves).toMap,
+      volatilities = market.currencies.view.mapValues(_.volatility).toMap,
       calendars = static.calendars
     )
 

@@ -14,14 +14,14 @@ object Handler:
 
   case class PriceParams(
       tRef: LocalDate,
-      market: Map[dtos.Currency, dtos.CcyMarket[LocalDate]],
+      market: dtos.Market[LocalDate],
       payoff: dtos.Payoff[LocalDate],
       static: dtos.Static[LocalDate]
   ) derives Codec
 
   case class ArbitrageParams(
       tRef: LocalDate,
-      market: Map[dtos.Currency, dtos.CcyMarket[LocalDate]],
+      market: dtos.Market[LocalDate],
       static: dtos.Static[LocalDate],
       currency: dtos.Currency,
       tenor: dtos.Tenor,
@@ -30,14 +30,14 @@ object Handler:
 
   case class ArbitrageMatrixParams(
       tRef: LocalDate,
-      market: Map[dtos.Currency, dtos.CcyMarket[LocalDate]],
+      market: dtos.Market[LocalDate],
       static: dtos.Static[LocalDate],
       currency: dtos.Currency
   ) derives Codec
 
   case class VolSamplingParams(
       tRef: LocalDate,
-      market: Map[dtos.Currency, dtos.CcyMarket[LocalDate]],
+      market: dtos.Market[LocalDate],
       static: dtos.Static[LocalDate],
       currency: dtos.Currency,
       tenor: dtos.Tenor,

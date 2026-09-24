@@ -23,7 +23,7 @@ class JsonParsing extends munit.FunSuite with EitherSyntax:
 
     case class Js(
         tRef: T,
-        market: Map[dtos.Currency, dtos.CcyMarket[T]],
+        market: dtos.Market[T],
         static: dtos.Static[T]
     ) derives Codec
 
@@ -35,7 +35,7 @@ class JsonParsing extends munit.FunSuite with EitherSyntax:
     case class Js(
         tRef: T,
         payoff: dtos.Payoff[T],
-        market: Map[dtos.Currency, dtos.CcyMarket[T]],
+        market: dtos.Market[T],
         static: dtos.Static[T]
     ) derives Codec
 
@@ -54,7 +54,7 @@ class JsonParsing extends munit.FunSuite with EitherSyntax:
 
     case class Js(
         tRef: T,
-        market: Map[dtos.Currency, dtos.CcyMarket[T]],
+        market: dtos.Market[T],
         static: dtos.Static[T]
     ) derives Codec
 
@@ -71,7 +71,7 @@ class JsonParsing extends munit.FunSuite with EitherSyntax:
 
     case class Js(
         tRef: T,
-        market: Map[dtos.Currency, dtos.CcyMarket[T]],
+        market: dtos.Market[T],
         static: dtos.Static[T]
     ) derives Codec
 

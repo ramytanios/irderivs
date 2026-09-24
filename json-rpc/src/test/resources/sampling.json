@@ -1,93 +1,95 @@
 {
   "tRef": "2026-01-25",
   "market": {
-    "EUR": {
-      "rates": {
-        "ESTR12M": {
-          "currency": "EUR",
-          "tenor": "12M",
-          "spotLag": 2,
-          "dayCounter": "Act360",
-          "calendar": "world",
-          "resetCurve": "ESTR",
-          "bdConvention": "Following",
-          "type": "Libor"
-        }
-      },
-      "curves": {
-        "ESTR": {
-          "rate": 0.01,
-          "type": "ContinuousCompounding"
-        }
-      },
-      "volatility": {
-        "type": "Cube",
-        "unit": "BpPerYear",
-        "conventions": {
-          "liborRate": {
-            "currency": "EUR",
-            "spotLag": 0,
-            "dayCounter": "Act360",
-            "calendar": "world",
-            "resetCurve": "ESTR",
-            "bdConvention": "Following"
-          },
-          "swapRate": {
-            "spotLag": 2,
-            "paymentDelay": 2,
-            "fixedPeriod": "12M",
-            "floatingRate": "ESTR12M",
-            "fixedDayCounter": "Act360",
-            "calendar": "world",
-            "bdConvention": "ModifiedFollowing",
-            "stub": "Long",
-            "direction": "Backward",
-            "discountCurve": "ESTR",
-            "type": "Simple"
-          },
-          "boundaryTenor": "1Y",
-          "boundaryTenorKind": "Swap"
+    "rates": {
+      "ESTR12M": {
+        "currency": "EUR",
+        "tenor": "12M",
+        "spotLag": 2,
+        "dayCounter": "Act360",
+        "calendar": "world",
+        "resetCurve": "ESTR",
+        "bdConvention": "Following",
+        "type": "Libor"
+      }
+    },
+    "currencies": {
+      "EUR": {
+        "curves": {
+          "ESTR": {
+            "rate": 0.01,
+            "type": "ContinuousCompounding"
+          }
         },
-        "cube": {
-          "3M": {
-            "1Y": [
-              [
-                -0.0200,
-                0.01000
-              ],
-              [
-                -0.0100,
-                0.00800
-              ],
-              [
-                -0.0050,
-                0.00720
-              ],
-              [
-                -0.0025,
-                0.00700
-              ],
-              [
-                0.0000,
-                0.00690
-              ],
-              [
-                0.0025,
-                0.00710
-              ],
-              [
-                0.0050,
-                0.00740
-              ],
-              [
-                0.0100,
-                0.00900
-              ],
-              [
-                0.0200,
-                0.00930
+        "volatility": {
+          "type": "Cube",
+          "unit": "BpPerYear",
+          "conventions": {
+            "liborRate": {
+              "currency": "EUR",
+              "spotLag": 0,
+              "dayCounter": "Act360",
+              "calendar": "world",
+              "resetCurve": "ESTR",
+              "bdConvention": "Following"
+            },
+            "swapRate": {
+              "spotLag": 2,
+              "paymentDelay": 2,
+              "fixedPeriod": "12M",
+              "floatingRate": "ESTR12M",
+              "fixedDayCounter": "Act360",
+              "calendar": "world",
+              "bdConvention": "ModifiedFollowing",
+              "stub": "Long",
+              "direction": "Backward",
+              "discountCurve": "ESTR",
+              "type": "Simple"
+            },
+            "boundaryTenor": "1Y",
+            "boundaryTenorKind": "Swap"
+          },
+          "cube": {
+            "3M": {
+              "1Y": [
+                [
+                  -0.0200,
+                  0.01000
+                ],
+                [
+                  -0.0100,
+                  0.00800
+                ],
+                [
+                  -0.0050,
+                  0.00720
+                ],
+                [
+                  -0.0025,
+                  0.00700
+                ],
+                [
+                  0.0000,
+                  0.00690
+                ],
+                [
+                  0.0025,
+                  0.00710
+                ],
+                [
+                  0.0050,
+                  0.00740
+                ],
+                [
+                  0.0100,
+                  0.00900
+                ],
+                [
+                  0.0200,
+                  0.00930
+                ]
               ]
-            ]
+            }
           }
         }
       }

@@ -13,93 +13,95 @@
     "type": "Caplet"
   },
   "market": {
-    "USD": {
-      "rates": {
-        "LIBOR_RATE": {
-          "currency": "USD",
-          "tenor": "3M",
-          "spotLag": 2,
-          "dayCounter": "Act360",
-          "calendar": "NO_HOLIDAYS",
-          "resetCurve": "SINGLE_CURVE",
-          "bdConvention": "ModifiedFollowing",
-          "type": "Libor"
-        }
-      },
-      "curves": {
-        "SINGLE_CURVE": {
-          "rate": "0.02",
-          "type": "ContinuousCompounding"
-        }
-      },
-      "volatility": {
-        "unit": "BpPerYear",
-        "type": "Cube",
-        "conventions": {
-          "boundaryTenor": "10Y",
-          "boundaryTenorKind": "Swap",
-          "liborRate": {
-            "currency": "USD",
-            "spotLag": 2,
-            "dayCounter": "Act360",
-            "calendar": "NO_HOLIDAYS",
-            "resetCurve": "SINGLE_CURVE",
-            "bdConvention": "ModifiedFollowing"
-          },
-          "swapRate": {
-            "spotLag": 2,
-            "paymentDelay": 0,
-            "fixedPeriod": "3M",
-            "floatingRate": "LIBOR_RATE",
-            "fixedDayCounter": "Act360",
-            "calendar": "NO_HOLIDAYS",
-            "bdConvention": "ModifiedFollowing",
-            "stub": "Short",
-            "direction": "Backward",
-            "discountCurve": "SINGLE_CURVE",
-            "type": "Simple"
+    "rates": {
+      "LIBOR_RATE": {
+        "currency": "USD",
+        "tenor": "3M",
+        "spotLag": 2,
+        "dayCounter": "Act360",
+        "calendar": "NO_HOLIDAYS",
+        "resetCurve": "SINGLE_CURVE",
+        "bdConvention": "ModifiedFollowing",
+        "type": "Libor"
+      }
+    },
+    "currencies": {
+      "USD": {
+        "curves": {
+          "SINGLE_CURVE": {
+            "rate": "0.02",
+            "type": "ContinuousCompounding"
           }
         },
-        "cube": {
-          "3M": {
-            "1Y": [
-              [
-                -0.0200,
-                0.01000
-              ],
-              [
-                -0.0100,
-                0.00800
-              ],
-              [
-                -0.0050,
-                0.00720
-              ],
-              [
-                -0.0025,
-                0.00700
-              ],
-              [
-                0.0000,
-                0.00690
-              ],
-              [
-                0.0025,
-                0.00710
-              ],
-              [
-                0.0050,
-                0.00740
-              ],
-              [
-                0.0100,
-                0.00900
-              ],
-              [
-                0.0200,
-                0.00930
+        "volatility": {
+          "unit": "BpPerYear",
+          "type": "Cube",
+          "conventions": {
+            "boundaryTenor": "10Y",
+            "boundaryTenorKind": "Swap",
+            "liborRate": {
+              "currency": "USD",
+              "spotLag": 2,
+              "dayCounter": "Act360",
+              "calendar": "NO_HOLIDAYS",
+              "resetCurve": "SINGLE_CURVE",
+              "bdConvention": "ModifiedFollowing"
+            },
+            "swapRate": {
+              "spotLag": 2,
+              "paymentDelay": 0,
+              "fixedPeriod": "3M",
+              "floatingRate": "LIBOR_RATE",
+              "fixedDayCounter": "Act360",
+              "calendar": "NO_HOLIDAYS",
+              "bdConvention": "ModifiedFollowing",
+              "stub": "Short",
+              "direction": "Backward",
+              "discountCurve": "SINGLE_CURVE",
+              "type": "Simple"
+            }
+          },
+          "cube": {
+            "3M": {
+              "1Y": [
+                [
+                  -0.0200,
+                  0.01000
+                ],
+                [
+                  -0.0100,
+                  0.00800
+                ],
+                [
+                  -0.0050,
+                  0.00720
+                ],
+                [
+                  -0.0025,
+                  0.00700
+                ],
+                [
+                  0.0000,
+                  0.00690
+                ],
+                [
+                  0.0025,
+                  0.00710
+                ],
+                [
+                  0.0050,
+                  0.00740
+                ],
+                [
+                  0.0100,
+                  0.00900
+                ],
+                [
+                  0.0200,
+                  0.00930
+                ]
               ]
-            ]
+            }
           }
         }
       }
