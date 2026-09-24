@@ -30,7 +30,7 @@ object CDFInverter:
       t: T,
       expiry: T,
       msQuoted: List[Moneyness],
-      vol: VolatilitySkew,
+      vol: VolatilitySmile,
       forward: Forward[T],
       params: Params = Params()
   ): Either[Arbitrage, Double => Double] =
@@ -44,7 +44,7 @@ object CDFInverter:
     // φ⁻¹ of N(F,σ²T)
     val cdfInvN = NormalDistribution(fwd, atmStdv).inverseCumulativeProbability
 
-    // cdf implied from vol skew
+    // cdf implied from vol smile
     val cdfImplied = bachelier.impliedCumulative(fwd, dt, vol.apply, vol.fstDerivative)
 
     val ksQuoted = msQuoted.map(_.value + fwd)

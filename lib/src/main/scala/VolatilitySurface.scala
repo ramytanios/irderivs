@@ -8,28 +8,28 @@ import math.pow
 
 trait VolatilitySurface[T]:
 
-  def apply(maturity: T): VolatilitySkew
+  def apply(maturity: T): VolatilitySmile
 
 object VolatilitySurface:
 
   def apply[T: DateLike](
       tRef: T,
       forward: Forward[T],
-      skews: IndexedSeq[(T, Lazy[VolatilitySkew])]
+      smiles: IndexedSeq[(T, Lazy[VolatilitySmile])]
   ): VolatilitySurface[T] =
-    val ts = skews.map(_(0))
+    val ts = smiles.map(_(0))
     require(
       ts.isStrictlyIncreasing,
       s"pillar maturities must be strictly increasing, got ${ts.mkString(",")}"
     )
 
-    val tMin = skews.head(0)
-    val tMax = skews.last(0)
+    val tMin = smiles.head(0)
+    val tMax = smiles.last(0)
 
     given DayCounter = DayCounter.Act365
 
     t =>
-      new VolatilitySkew:
+      new VolatilitySmile:
 
         def L(left: (T, Double => Double), right: (T, Double => Double), m: Double) =
           val (tL, fL) = left
@@ -42,7 +42,7 @@ object VolatilitySurface:
             (1.0 - w) * dtL * pow(fL(forward(tL) + m), 2) + w * dtR * pow(fR(forward(tR) + m), 2)
           )
 
-        // bilinear counterpart of `L`: combines the product of two skew functions per
+        // bilinear counterpart of `L`: combines the product of two smile functions per
         // pillar instead of the square, so it can express derivatives of `L`.
         def L2(
             left: (T, Double => Double, Double => Double),
@@ -66,16 +66,16 @@ object VolatilitySurface:
           val m = k - forward(t)
 
           val I = (k: Int) =>
-            val (t0, s0) = skews(k - 1)
-            val (t1, s1) = skews(k)
+            val (t0, s0) = smiles(k - 1)
+            val (t1, s1) = smiles(k)
             sqrt(L(t0 -> s0.value, t1 -> s1.value, m))
 
           // extrapolation is constant in vol to avoid the latter going negative
-          if t < tMin || skews.size == 1 then skews.head(1).value(forward(tMin) + m)
-          else if t > tMax then skews.last(1).value(forward(tMax) + m)
+          if t < tMin || smiles.size == 1 then smiles.head(1).value(forward(tMin) + m)
+          else if t > tMax then smiles.last(1).value(forward(tMax) + m)
           else
-            skews.searchBy(_(0))(t) match
-              case BinarySearch.Found(i)        => skews(i)(1).value(k)
+            smiles.searchBy(_(0))(t) match
+              case BinarySearch.Found(i)        => smiles(i)(1).value(k)
               case BinarySearch.InsertionLoc(i) => I(i)
 
         def fstDerivative(k: Double): Double =
@@ -83,8 +83,8 @@ object VolatilitySurface:
           val m = k - forward(t)
 
           val I = (k: Int) =>
-            val (t0, s0) = skews(k - 1)
-            val (t1, s1) = skews(k)
+            val (t0, s0) = smiles(k - 1)
+            val (t1, s1) = smiles(k)
             val sk0 = s0.value
             val sk1 = s1.value
             val v0: Double => Double = sk0.apply
@@ -95,11 +95,11 @@ object VolatilitySurface:
             val c = L2((t0, v0, v0), (t1, v1, v1), m)
             L2((t0, v0, d0), (t1, v1, d1), m) / sqrt(c)
 
-          if t < tMin || skews.size == 1 then skews.head(1).value.fstDerivative(forward(tMin) + m)
-          else if t > tMax then skews.last(1).value.fstDerivative(forward(tMax) + m)
+          if t < tMin || smiles.size == 1 then smiles.head(1).value.fstDerivative(forward(tMin) + m)
+          else if t > tMax then smiles.last(1).value.fstDerivative(forward(tMax) + m)
           else
-            skews.searchBy(_(0))(t) match
-              case BinarySearch.Found(i)        => skews(i)(1).value.fstDerivative(k)
+            smiles.searchBy(_(0))(t) match
+              case BinarySearch.Found(i)        => smiles(i)(1).value.fstDerivative(k)
               case BinarySearch.InsertionLoc(i) => I(i)
 
         def sndDerivative(k: Double): Double =
@@ -107,8 +107,8 @@ object VolatilitySurface:
           val m = k - forward(t)
 
           val I = (k: Int) =>
-            val (t0, s0) = skews(k - 1)
-            val (t1, s1) = skews(k)
+            val (t0, s0) = smiles(k - 1)
+            val (t1, s1) = smiles(k)
             val sk0 = s0.value
             val sk1 = s1.value
             val v0: Double => Double = sk0.apply
@@ -125,21 +125,21 @@ object VolatilitySurface:
             val b = L2((t0, v0, e0), (t1, v1, e1), m)
             (a + b) / sqrt(c) - pow(cx, 2) / c / sqrt(c)
 
-          if t < tMin || skews.size == 1 then skews.head(1).value.sndDerivative(forward(tMin) + m)
-          else if t > tMax then skews.last(1).value.sndDerivative(forward(tMax) + m)
+          if t < tMin || smiles.size == 1 then smiles.head(1).value.sndDerivative(forward(tMin) + m)
+          else if t > tMax then smiles.last(1).value.sndDerivative(forward(tMax) + m)
           else
-            skews.searchBy(_(0))(t) match
-              case BinarySearch.Found(i)        => skews(i)(1).value.sndDerivative(k)
+            smiles.searchBy(_(0))(t) match
+              case BinarySearch.Found(i)        => smiles(i)(1).value.sndDerivative(k)
               case BinarySearch.InsertionLoc(i) => I(i)
 
-  def flat[T](vol: Double): VolatilitySurface[T] = _ => VolatilitySkew.flat(vol)
+  def flat[T](vol: Double): VolatilitySurface[T] = _ => VolatilitySmile.flat(vol)
 
-  def fromMoneynessSkew[T](
+  def fromMoneynessSmile[T](
       forward: Forward[T],
       moneynesses: Seq[Double],
       vols: Seq[Double]
   ): VolatilitySurface[T] = new VolatilitySurface[T]:
-    def apply(maturity: T): VolatilitySkew =
+    def apply(maturity: T): VolatilitySmile =
       val f = forward(maturity)
       val strikes = moneynesses.map(_ + f)
-      VolatilitySkew(strikes.toIndexedSeq, vols.toIndexedSeq)
+      VolatilitySmile(strikes.toIndexedSeq, vols.toIndexedSeq)

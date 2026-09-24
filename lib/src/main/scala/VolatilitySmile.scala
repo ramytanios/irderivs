@@ -3,7 +3,7 @@ package lib
 import scala.math.pow
 import scala.math.tanh
 
-trait VolatilitySkew:
+trait VolatilitySmile:
 
   def apply(strike: Double): Double
 
@@ -11,21 +11,21 @@ trait VolatilitySkew:
 
   def sndDerivative(strike: Double): Double
 
-object VolatilitySkew:
+object VolatilitySmile:
 
-  given Conversion[VolatilitySkew, Double => Double] = _.apply
+  given Conversion[VolatilitySmile, Double => Double] = _.apply
 
   def apply(
       f: Double => Double,
       fstDeriv: Double => Double,
       sndDeriv: Double => Double
-  ): VolatilitySkew =
-    new VolatilitySkew:
+  ): VolatilitySmile =
+    new VolatilitySmile:
       override def apply(strike: Double): Double = f(strike)
       override def fstDerivative(strike: Double): Double = fstDeriv(strike)
       override def sndDerivative(strike: Double): Double = sndDeriv(strike)
 
-  def apply(ks: IndexedSeq[Double], vs: IndexedSeq[Double]): VolatilitySkew =
+  def apply(ks: IndexedSeq[Double], vs: IndexedSeq[Double]): VolatilitySmile =
 
     val spline = CubicSpline(ks, vs)
 
@@ -36,7 +36,7 @@ object VolatilitySkew:
 
     val w = 1.0 / 3.0
 
-    new VolatilitySkew:
+    new VolatilitySmile:
 
       def apply(k: Double): Double =
         if k <= kMin then
@@ -75,9 +75,9 @@ object VolatilitySkew:
             2 * pow(dR, 2) / vR / w * t * (t * t - 1)
         else spline.sndDerivative(k)
 
-  def flat(vol: Double): VolatilitySkew =
+  def flat(vol: Double): VolatilitySmile =
 
-    new VolatilitySkew:
+    new VolatilitySmile:
 
       def apply(strike: Double): Double = vol
 

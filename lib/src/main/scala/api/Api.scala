@@ -54,18 +54,31 @@ class Api[T: lib.DateLike](val market: Market[T]):
       buildVolSurface(currency, tenor).map(_(t)).map:
         CDFInverter(market.t, t, msQuoted, _, rate.forward, params).swap.toOption
 
-  def sampleVolSkew(
+  def sampleVolSmile(
       currency: dtos.Currency,
       tenor: Tenor,
       expiry: Tenor,
       nSamplesMiddle: Int,
       nSamplesTail: Int,
       nStdvsTail: Int
-  ): Either[lib.Error, VolatilitySkewSampler.Result] =
+  ): Either[lib.Error, VolatilitySmileSampler.Result] =
     buildVolConventions(currency, tenor).flatMap: rate =>
       val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
       buildVolCube(currency).map: volCube =>
-        val volSkew = volCube(tenor)(t)
+        val volSmile = volCube(tenor)(t)
         val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
-        val params = VolatilitySkewSampler.Params(nSamplesMiddle, nSamplesTail, nStdvsTail)
-        VolatilitySkewSampler(market.t, t, msQuoted, volSkew, rate.forward, params)
+        val params = VolatilitySmileSampler.Params(nSamplesMiddle, nSamplesTail, nStdvsTail)
+        VolatilitySmileSampler(market.t, t, msQuoted, volSmile, rate.forward, params)
+
+  def sampleVolSmile(
+      currency: dtos.Currency,
+      tenor: Tenor,
+      expiry: Tenor,
+      moneynesses: List[dtos.Moneyness]
+  ): Either[lib.Error, List[(dtos.Moneyness, Double)]] =
+    buildVolConventions(currency, tenor).flatMap: rate =>
+      val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
+      buildVolCube(currency).map: volCube =>
+        val volSmile = volCube(tenor)(t)
+        val forward = rate.forward(t)
+        moneynesses.map(m => m -> volSmile(m.value + forward))

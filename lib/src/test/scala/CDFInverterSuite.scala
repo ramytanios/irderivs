@@ -47,8 +47,8 @@ class CDFInverterSuite extends munit.FunSuite:
       136.344, 159.253
     ).map(_ / 10000)
 
-    val skew0 = VolatilitySkew(ks.toIndexedSeq, vs0.toIndexedSeq)
-    CDFInverter(t0, t, Nil, skew0, forward, params) match
+    val smile0 = VolatilitySmile(ks.toIndexedSeq, vs0.toIndexedSeq)
+    CDFInverter(t0, t, Nil, smile0, forward, params) match
       case Left(value)  => fail(s"should be arbitrage free, got $value")
       case Right(value) => ()
 
@@ -58,8 +58,8 @@ class CDFInverterSuite extends munit.FunSuite:
       210.123, 170.336, 131.238, 119.941, 108.576, 98.021, 90.377, 88.833, 93.944, 102.947, 113.598,
       136.344, 159.253
     ).map(_ / 10000)
-    val skew1 = VolatilitySkew(ks.toIndexedSeq, vs1.toIndexedSeq)
-    CDFInverter(t0, t, Nil, skew1, forward, params) match
+    val smile1 = VolatilitySmile(ks.toIndexedSeq, vs1.toIndexedSeq)
+    CDFInverter(t0, t, Nil, smile1, forward, params) match
       case Left(Arbitrage.LeftAsymptoticPut) => ()
       case other                             => fail(s"should have left asymptotic arbitrage, got $other")
 
@@ -69,8 +69,8 @@ class CDFInverterSuite extends munit.FunSuite:
       List(170.145, 152.336, 131.238, 119.941, 130.00, 150.00, 160.00, 140.00, 93.944, 102.947,
         113.598, 136.344, 159.253
       ).map(_ / 10000)
-    val skew2 = VolatilitySkew(ks.toIndexedSeq, vs2.toIndexedSeq)
-    CDFInverter(t0, t, Nil, skew2, forward, params) match
+    val smile2 = VolatilitySmile(ks.toIndexedSeq, vs2.toIndexedSeq)
+    CDFInverter(t0, t, Nil, smile2, forward, params) match
       case Left(Arbitrage.Density(_, _)) => ()
       case other                         => fail(s"shoud have density arbitrage, got $other")
 
@@ -80,7 +80,7 @@ class CDFInverterSuite extends munit.FunSuite:
       170.145, 152.336, 131.238, 119.941, 108.576, 98.021, 90.377, 88.833, 93.944, 102.947,
       113.598, 170.123, 190.613
     ).map(_ / 10000)
-    val skew3 = VolatilitySkew(ks.toIndexedSeq, vs3.toIndexedSeq)
-    CDFInverter(t0, t, Nil, skew3, forward, params) match
+    val smile3 = VolatilitySmile(ks.toIndexedSeq, vs3.toIndexedSeq)
+    CDFInverter(t0, t, Nil, smile3, forward, params) match
       case Left(Arbitrage.RightAsymptoticCall) => ()
       case other                               => fail(s"should have right asymptotic arbitrage, got $other")

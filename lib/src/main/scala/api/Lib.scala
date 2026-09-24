@@ -28,17 +28,17 @@ class Lib[T: lib.DateLike](market: Market[T]):
       case dtos.Volatility.Cube(cube, conventions) =>
         market.volSurface(currency, tenor).flatMap: surface =>
           buildVolConventions(conventions, tenor).map: rate =>
-            val skews = surface.toList.map:
-              case (expTenor, skew) =>
+            val smiles = surface.toList.map:
+              case (expTenor, smile) =>
                 val expiry =
                   rate.calendar.addBusinessPeriod(market.t, expTenor)(using rate.bdConvention)
                 expiry -> lib.Lazy:
-                  val (ms, vs0) = skew.unzip
+                  val (ms, vs0) = smile.unzip
                   val fwd = rate.forward(expiry)
                   val ks = ms.map(fwd + _.value)
-                  lib.VolatilitySkew(ks.toIndexedSeq, vs0.toIndexedSeq)
-            val sortedSkews = skews.sortBy(_(0))(using lib.syntax.given_Ordering_T)
-            lib.VolatilitySurface[T](market.t, rate.forward, sortedSkews.toIndexedSeq)
+                  lib.VolatilitySmile(ks.toIndexedSeq, vs0.toIndexedSeq)
+            val sortedSmiles = smiles.sortBy(_(0))(using lib.syntax.given_Ordering_T)
+            lib.VolatilitySurface[T](market.t, rate.forward, sortedSmiles.toIndexedSeq)
       case dtos.Volatility.Flat(vol) =>
         lib.VolatilitySurface.flat[T](vol).asRight[lib.Error]
 

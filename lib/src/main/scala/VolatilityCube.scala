@@ -26,9 +26,9 @@ object VolatilityCube:
 
     tenor =>
       t =>
-        new VolatilitySkew:
+        new VolatilitySmile:
 
-          def impl(k: Double)(f: VolatilitySkew => Double => Double) =
+          def impl(k: Double)(f: VolatilitySmile => Double => Double) =
             val m = k - forward(tenor)(t)
             if tenor < tenorMin then f(surfaces.head(1)(t))(forward(tenorMin)(t) + m)
             else if tenor > tenorMax then f(surfaces.last(1)(t))(forward(tenorMax)(t) + m)

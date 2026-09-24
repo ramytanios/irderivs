@@ -119,7 +119,7 @@ object Handler:
           request,
           params =>
             val market = Market[LocalDate](params.tRef, params.market, params.static)
-            new Api(market).sampleVolSkew(
+            new Api(market).sampleVolSmile(
               params.currency,
               params.tenor,
               params.expiry,

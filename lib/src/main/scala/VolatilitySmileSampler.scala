@@ -4,7 +4,7 @@ import lib.dtos.Moneyness
 import lib.syntax.*
 import org.apache.commons.math3.distribution.NormalDistribution
 
-object VolatilitySkewSampler:
+object VolatilitySmileSampler:
 
   case class Params(
       nSamplesMiddle: Int,
@@ -26,7 +26,7 @@ object VolatilitySkewSampler:
       t: T,
       expiry: T,
       msQuoted: List[Moneyness],
-      volSkew: VolatilitySkew,
+      smile: VolatilitySmile,
       forward: Forward[T],
       params: Params
   ): Result =
@@ -34,11 +34,11 @@ object VolatilitySkewSampler:
     val dt = t.yearFractionTo(expiry)(using lib.DateLike[T], DayCounter.Act365)
     val fwd = forward(expiry)
     val ksQuoted = msQuoted.map(_.value + fwd)
-    val vsQuoted = ksQuoted.map(volSkew)
+    val vsQuoted = ksQuoted.map(smile)
     val impliedPdf =
-      bachelier.impliedDensity(fwd, dt.value, volSkew, volSkew.fstDerivative, volSkew.sndDerivative)
+      bachelier.impliedDensity(fwd, dt.value, smile, smile.fstDerivative, smile.sndDerivative)
     val pdfQuoted = ksQuoted.map(impliedPdf)
-    val atmStdv = volSkew(fwd) * math.sqrt(dt.value)
+    val atmStdv = smile(fwd) * math.sqrt(dt.value)
     val cdfInvN = NormalDistribution(fwd, atmStdv).inverseCumulativeProbability
     val ksMiddle = (1 to params.nSamplesMiddle).map(i => cdfInvN(i / (params.nSamplesMiddle + 1.0)))
     val ksRight = ksMiddle.lastOption.flatMap: kmMax =>
@@ -52,6 +52,6 @@ object VolatilitySkewSampler:
         uniform(kMin, kmMin, params.nSamplesTail).toList.dropRight(1)
     .orEmpty
     val ks = ksLeft ++ ksMiddle ++ ksRight
-    val vs = ks.map(volSkew)
+    val vs = ks.map(smile)
     val pdf = ks.map(impliedPdf)
     Result(ksQuoted, vsQuoted, pdfQuoted, ks, vs, pdf, fwd)
