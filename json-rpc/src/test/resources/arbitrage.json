@@ -51,7 +51,8 @@
             "discountCurve": {
               "name": "ESTR",
               "currency": "EUR"
-            }
+            },
+            "type": "Simple"
           },
           "boundaryTenor": "1Y",
           "boundaryTenorKind": "Swap"

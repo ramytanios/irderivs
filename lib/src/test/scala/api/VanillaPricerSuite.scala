@@ -39,7 +39,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
         dtos.Curve(dtos.Currency.USD, singleCurveId),
         dtos.BusinessDayConvention.ModifiedFollowing
       ),
-      dtos.VolatilityMarketConventions.SwapRate(
+      dtos.VolatilityMarketConventions.SwapRate.Simple(
         2,
         0,
         dtos.Tenor.`3M`,

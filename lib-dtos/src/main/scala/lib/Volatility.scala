@@ -31,18 +31,38 @@ object VolatilityMarketConventions:
       bdConvention: BusinessDayConvention
   ) derives Codec
 
-  case class SwapRate(
-      spotLag: Int,
-      paymentDelay: Int,
-      fixedPeriod: Tenor,
-      floatingRate: RateId,
-      fixedDayCounter: DayCounter,
-      calendar: CalendarId,
-      bdConvention: BusinessDayConvention,
-      stub: StubConvention,
-      direction: Direction,
-      discountCurve: Curve
-  ) derives Codec
+  object SwapRate:
+    given Configuration = Configuration.default.withDiscriminator("type")
+    given Codec[SwapRate] = Codec.AsObject.derivedConfigured
+
+  enum SwapRate:
+
+    case Simple(
+        spotLag: Int,
+        paymentDelay: Int,
+        fixedPeriod: Tenor,
+        floatingRate: RateId,
+        fixedDayCounter: DayCounter,
+        calendar: CalendarId,
+        bdConvention: BusinessDayConvention,
+        stub: StubConvention,
+        direction: Direction,
+        discountCurve: Curve
+    )
+
+    case Compounded(
+        spotLag: Int,
+        paymentDelay: Int,
+        fixedPeriod: Tenor,
+        compoundingRate: RateId,
+        floatingPeriod: Tenor,
+        fixedDayCounter: DayCounter,
+        calendar: CalendarId,
+        bdConvention: BusinessDayConvention,
+        stub: StubConvention,
+        direction: Direction,
+        discountCurve: Curve
+    )
 
 object Volatility:
   given Configuration = Configuration.default.withDiscriminator("type")

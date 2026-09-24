@@ -68,7 +68,8 @@
             "discountCurve": {
               "currency": "USD",
               "name": "SINGLE_CURVE"
-            }
+            },
+            "type": "Simple"
           }
         },
         "cube": {

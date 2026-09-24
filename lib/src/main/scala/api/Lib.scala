@@ -6,6 +6,7 @@ import lib.quantities.*
 import lib.quantities.Tenor.toYf
 
 import scala.math.Ordering.Implicits.*
+import lib.dtos.VolatilityMarketConventions.SwapRate
 
 class Lib[T: lib.DateLike](market: Market[T]):
 
@@ -98,23 +99,66 @@ class Lib[T: lib.DateLike](market: Market[T]):
       swapRate: dtos.VolatilityMarketConventions.SwapRate,
       tenor: Tenor
   ): Either[lib.Error, lib.SwapRate[T]] =
-    buildYieldCurve(swapRate.discountCurve).flatMap: discountCurve =>
-      buildLibor(swapRate.floatingRate).flatMap: liborRate =>
-        market.calendar(swapRate.calendar).flatMap: calendar =>
-          buildCalendar(calendar).map: calendar =>
-            new lib.SwapRate[T](
-              tenor,
-              swapRate.spotLag,
-              swapRate.paymentDelay,
-              swapRate.fixedPeriod,
-              liborRate,
-              toDayCounter(swapRate.fixedDayCounter),
-              calendar,
-              swapRate.bdConvention,
-              swapRate.stub,
-              swapRate.direction,
-              discountCurve
-            )
+    swapRate match
+      case SwapRate.Simple(
+            spotLag,
+            paymentDelay,
+            fixedPeriod,
+            floatingRate,
+            fixedDayCounter,
+            calendar,
+            bdConvention,
+            stub,
+            direction,
+            discountCurve
+          ) =>
+        buildYieldCurve(discountCurve).flatMap: discountCurve =>
+          buildLibor(floatingRate).flatMap: liborRate =>
+            market.calendar(calendar).flatMap: calendar =>
+              buildCalendar(calendar).map: calendar =>
+                new lib.SwapRate[T](
+                  tenor,
+                  spotLag,
+                  paymentDelay,
+                  fixedPeriod,
+                  liborRate,
+                  toDayCounter(fixedDayCounter),
+                  calendar,
+                  bdConvention,
+                  stub,
+                  direction,
+                  discountCurve
+                )
+      case SwapRate.Compounded(
+            spotLag,
+            paymentDelay,
+            fixedPeriod,
+            compoundingRate,
+            floatingPeriod,
+            fixedDayCounter,
+            calendar,
+            bdConvention,
+            stub,
+            direction,
+            discountCurve
+          ) =>
+        buildYieldCurve(discountCurve).flatMap: discountCurve =>
+          buildLibor(compoundingRate).flatMap: liborRate =>
+            market.calendar(calendar).flatMap: calendar =>
+              buildCalendar(calendar).map: calendar =>
+                new lib.SwapRate[T](
+                  tenor,
+                  spotLag,
+                  paymentDelay,
+                  fixedPeriod,
+                  liborRate,
+                  toDayCounter(fixedDayCounter),
+                  calendar,
+                  bdConvention,
+                  stub,
+                  direction,
+                  discountCurve
+                )
 
   private def toLibor(libor: dtos.Underlying.Libor): Either[lib.Error, lib.Libor[T]] =
     buildYieldCurve(libor.resetCurve).flatMap: resetCurve =>
