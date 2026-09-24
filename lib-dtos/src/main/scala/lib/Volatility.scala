@@ -27,7 +27,7 @@ object VolatilityMarketConventions:
       spotLag: Int,
       dayCounter: DayCounter,
       calendar: CalendarId,
-      resetCurve: Curve,
+      resetCurve: CurveId,
       bdConvention: BusinessDayConvention
   ) derives Codec
 
@@ -47,7 +47,7 @@ object VolatilityMarketConventions:
         bdConvention: BusinessDayConvention,
         stub: StubConvention,
         direction: Direction,
-        discountCurve: Curve
+        discountCurve: CurveId
     )
 
     case Compounded(
@@ -61,7 +61,7 @@ object VolatilityMarketConventions:
         bdConvention: BusinessDayConvention,
         stub: StubConvention,
         direction: Direction,
-        discountCurve: Curve
+        discountCurve: CurveId
     )
 
 object Volatility:

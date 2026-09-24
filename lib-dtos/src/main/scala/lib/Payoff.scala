@@ -18,7 +18,7 @@ enum Payoff[T]:
       paymentAt: T,
       paymentCurrency: Currency,
       strike: Double,
-      discountCurve: Curve,
+      discountCurve: CurveId,
       optionType: OptionType,
       fixings: Option[List[(T, Double)]]
   ) extends Payoff[T]
@@ -29,7 +29,7 @@ enum Payoff[T]:
       strike: Double,
       optionType: OptionType,
       annuity: Annuity,
-      discountCurve: Curve,
+      discountCurve: CurveId,
       fixings: Option[List[(T, Double)]]
   ) extends Payoff[T]
 
@@ -41,7 +41,7 @@ enum Payoff[T]:
       paymentAt: T,
       strike: Double,
       optionType: OptionType,
-      discountCurve: Curve,
+      discountCurve: CurveId,
       stub: StubConvention,
       direction: Direction,
       fixings: Option[List[(T, Double)]]

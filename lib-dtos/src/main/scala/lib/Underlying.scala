@@ -17,7 +17,7 @@ enum Underlying:
       spotLag: Int,
       dayCounter: DayCounter,
       calendar: CalendarId,
-      resetCurve: Curve,
+      resetCurve: CurveId,
       bdConvention: BusinessDayConvention
   ) extends Underlying
 
@@ -32,7 +32,7 @@ enum Underlying:
       bdConvention: BusinessDayConvention,
       stub: StubConvention,
       direction: Direction,
-      discountCurve: Curve
+      discountCurve: CurveId
   ) extends Underlying
 
   case CompoundedSwapRate(
@@ -47,5 +47,5 @@ enum Underlying:
       bdConvention: BusinessDayConvention,
       stub: StubConvention,
       direction: Direction,
-      discountCurve: Curve
+      discountCurve: CurveId
   ) extends Underlying

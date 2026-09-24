@@ -7,8 +7,8 @@ enum MarketError(msg: String) extends lib.Error(msg):
   case MissingRate(name: dtos.RateId)
       extends MarketError(s"missing rate $name")
 
-  case MissingYieldCurve(ccy: dtos.Currency, name: dtos.CurveId)
-      extends MarketError(s"missing curve $name in ccy $ccy")
+  case MissingYieldCurve(name: dtos.CurveId)
+      extends MarketError(s"missing curve $name")
 
   case MissingVolatility(currency: dtos.Currency)
       extends MarketError(s"missing vol cube of currency $currency")
@@ -24,7 +24,7 @@ trait Market[T]:
 
   def rate(name: dtos.RateId): Either[MarketError, dtos.Underlying]
 
-  def yieldCurve(curve: dtos.Curve): Either[MarketError, dtos.YieldCurve[T]]
+  def yieldCurve(curve: dtos.CurveId): Either[MarketError, dtos.YieldCurve[T]]
 
   def volCube(currency: dtos.Currency): Either[MarketError, dtos.Volatility]
 
@@ -45,9 +45,7 @@ object Market:
     this.apply(
       tRef,
       rates = marketByCcy.values.map(_.rates).reduce(_ ++ _),
-      curves = marketByCcy.flatMap((ccy, market) =>
-        market.curves.map((name, curve) => dtos.Curve(ccy, name) -> curve)
-      ).toMap,
+      curves = marketByCcy.flatMap((_, market) => market.curves).toMap,
       volatilities = marketByCcy.view.mapValues(_.volatility).toMap,
       calendars = static.calendars
     )
@@ -55,7 +53,7 @@ object Market:
   def apply[T](
       tRef: T,
       rates: Map[dtos.RateId, dtos.Underlying],
-      curves: Map[dtos.Curve, dtos.YieldCurve[T]],
+      curves: Map[dtos.CurveId, dtos.YieldCurve[T]],
       volatilities: Map[dtos.Currency, dtos.Volatility],
       calendars: Map[dtos.CalendarId, dtos.Calendar[T]]
   ): Market[T] = new Market[T]:
@@ -67,8 +65,8 @@ object Market:
     def rate(name: dtos.RateId): Either[MarketError, dtos.Underlying] =
       rates.get(name).toRight(MissingRate(name))
 
-    def yieldCurve(curve: dtos.Curve): Either[MarketError, dtos.YieldCurve[T]] =
-      curves.get(curve).toRight(MissingYieldCurve(curve.currency, curve.name))
+    def yieldCurve(curve: dtos.CurveId): Either[MarketError, dtos.YieldCurve[T]] =
+      curves.get(curve).toRight(MissingYieldCurve(curve))
 
     def volCube(currency: dtos.Currency): Either[MarketError, dtos.Volatility] =
       volatilities.get(currency).toRight(MissingVolatility(currency))

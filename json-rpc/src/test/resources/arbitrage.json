@@ -9,10 +9,7 @@
           "spotLag": 2,
           "dayCounter": "Act360",
           "calendar": "world",
-          "resetCurve": {
-            "name": "ESTR",
-            "currency": "EUR"
-          },
+          "resetCurve":  "ESTR",
           "bdConvention": "Following",
           "type": "Libor"
         }
@@ -32,10 +29,7 @@
             "spotLag": 0,
             "dayCounter": "Act360",
             "calendar": "world",
-            "resetCurve": {
-              "name": "ESTR",
-              "currency": "EUR"
-            },
+            "resetCurve":  "ESTR",
             "bdConvention": "Following"
           },
           "swapRate": {
@@ -48,10 +42,7 @@
             "bdConvention": "ModifiedFollowing",
             "stub": "Long",
             "direction": "Backward",
-            "discountCurve": {
-              "name": "ESTR",
-              "currency": "EUR"
-            },
+            "discountCurve":  "ESTR",
             "type": "Simple"
           },
           "boundaryTenor": "1Y",

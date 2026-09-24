@@ -24,7 +24,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
       2,
       dtos.DayCounter.Act360,
       calendarId,
-      dtos.Curve(dtos.Currency.USD, singleCurveId),
+      singleCurveId,
       dtos.BusinessDayConvention.ModifiedFollowing
     )
 
@@ -36,7 +36,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
         2,
         dtos.DayCounter.Act360,
         calendarId,
-        dtos.Curve(dtos.Currency.USD, singleCurveId),
+        singleCurveId,
         dtos.BusinessDayConvention.ModifiedFollowing
       ),
       dtos.VolatilityMarketConventions.SwapRate.Simple(
@@ -49,7 +49,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
         dtos.BusinessDayConvention.ModifiedFollowing,
         dtos.StubConvention.Short,
         dtos.Direction.Backward,
-        dtos.Curve(dtos.Currency.USD, singleCurveId)
+        singleCurveId
       )
     )
 
@@ -57,10 +57,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
       tRef = t,
       rates = Map(dtos.RateId("LIBOR_RATE") -> rate),
       curves =
-        Map(
-          dtos.Curve(dtos.Currency.USD, singleCurveId) ->
-            dtos.YieldCurve.ContinuousCompounding(0.02)
-        ),
+        Map(singleCurveId -> dtos.YieldCurve.ContinuousCompounding(0.02)),
       volatilities = Map(
         dtos.Currency.USD -> dtos.Volatility.Cube(
           Map(
@@ -98,7 +95,7 @@ class VanillaPricerSuite extends munit.FunSuite with EitherSyntax:
       endAt,
       dtos.Currency.USD,
       0.009887915724457295,
-      dtos.Curve(dtos.Currency.USD, singleCurveId),
+      singleCurveId,
       dtos.OptionType.Call,
       None
     )

@@ -9,10 +9,7 @@
           "spotLag": 2,
           "dayCounter": "Act360",
           "calendar": "NO_HOLIDAYS",
-          "resetCurve": {
-            "currency": "USD",
-            "name": "SINGLE_CURVE"
-          },
+          "resetCurve": "SINGLE_CURVE",
           "bdConvention": "ModifiedFollowing",
           "type": "Libor"
         }
@@ -34,10 +31,7 @@
             "spotLag": 2,
             "dayCounter": "Act360",
             "calendar": "NO_HOLIDAYS",
-            "resetCurve": {
-              "currency": "USD",
-              "name": "SINGLE_CURVE"
-            },
+            "resetCurve": "SINGLE_CURVE",
             "bdConvention": "ModifiedFollowing"
           },
           "swapRate": {
@@ -50,10 +44,7 @@
             "bdConvention": "ModifiedFollowing",
             "stub": "Short",
             "direction": "Backward",
-            "discountCurve": {
-              "currency": "USD",
-              "name": "SINGLE_CURVE"
-            },
+            "discountCurve": "SINGLE_CURVE",
             "type": "Simple"
           }
         },
