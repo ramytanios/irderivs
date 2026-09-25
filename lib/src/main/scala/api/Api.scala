@@ -20,6 +20,14 @@ class Api[T: lib.DateLike](val market: Market[T]):
           price <- caplet.price(market.t, volSurface)
         yield price
 
+      case p: dtos.Payoff.Cap[T] =>
+        for
+          cap <- buildCap(p)
+          rate <- cap.rate.asRight
+          volSurface <- buildVolSurface(cap.paymentCurrency, rate.tenor)
+          price <- cap.price(market.t, volSurface)
+        yield price
+
       case p: dtos.Payoff.Swaption[T] =>
         for
           swaption <- buildSwaption(p)

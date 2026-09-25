@@ -248,6 +248,21 @@ class Lib[T: lib.DateLike](market: Market[T]):
           caplet.fixings.orEmpty.toMap
         )
 
+  def buildCap(cap: dtos.Payoff.Cap[T]): Either[lib.Error, lib.Cap[T]] =
+    buildLibor(cap.rate).flatMap: libor =>
+      buildYieldCurve(cap.discountCurve).map: discountCurve =>
+        new lib.Cap[T](
+          libor,
+          cap.periods.map(cp =>
+            lib.CapPeriod[T](cp.fixingAt, cp.startAt, cp.endAt, cp.paymentAt, cp.fixings.toMap)
+          ),
+          cap.paymentCurrency,
+          cap.strike,
+          cap.optionType,
+          discountCurve,
+          lib.Detachment.default[T]
+        )
+
   def buildSwaption(swaption: dtos.Payoff.Swaption[T]): Either[lib.Error, lib.Swaption[T]] =
     buildSwapRate(swaption.rate)
       .orElse(buildCompoundedSwapRate(swaption.rate))

@@ -2,11 +2,23 @@ package lib.dtos
 
 import io.circe.Codec
 import io.circe.derivation.*
+import io.circe.generic.semiauto.*
 import io.circe.derivation.ConfiguredCodec
 
 object Payoff:
   given Configuration = Configuration.default.withDiscriminator("type")
   given [T: Codec]: Codec[Payoff[T]] = Codec.AsObject.derivedConfigured
+
+object CapPeriod:
+  given [T: Codec]: Codec[CapPeriod[T]] = deriveCodec
+
+case class CapPeriod[T](
+    fixingAt: T,
+    startAt: T,
+    endAt: T,
+    paymentAt: T,
+    fixings: List[(T, Double)]
+)
 
 enum Payoff[T]:
 
@@ -21,6 +33,15 @@ enum Payoff[T]:
       discountCurve: CurveId,
       optionType: OptionType,
       fixings: Option[List[(T, Double)]]
+  ) extends Payoff[T]
+
+  case Cap[T](
+      rate: RateId,
+      periods: List[CapPeriod[T]],
+      paymentCurrency: Currency,
+      strike: Double,
+      optionType: OptionType,
+      discountCurve: CurveId
   ) extends Payoff[T]
 
   case Swaption[T](
