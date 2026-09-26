@@ -1,8 +1,9 @@
 package lib
 
-import org.apache.commons.math3.analysis.solvers.BrentSolver
-import org.apache.commons.math3.analysis.UnivariateFunction
 import cats.syntax.all.*
+import org.apache.commons.math3.analysis.UnivariateFunction
+import org.apache.commons.math3.analysis.solvers.BrentSolver
+import org.apache.commons.math3.exception.NoBracketingException
 
 object RootSolver:
 
@@ -18,13 +19,10 @@ object RootSolver:
       max: Double,
       settings: Settings = Settings()
   ): Either[lib.Error, Double] =
-    val fMin = f(min)
-    val fMax = f(max)
-    if fMin * fMax >= 0 then NotBracketed(min, max, fMin, fMax).asLeft[Double]
-    else
-      val solver = new BrentSolver(settings.absAccuracy)
-      val uf = new UnivariateFunction:
-        def value(x: Double): Double = f(x)
-      Either.catchNonFatal(solver.solve(settings.maxIters, uf, min, max))
-        .leftMap(t => lib.Error(t.getMessage))
-        .flatTap(root => Either.raiseWhen(root.isNaN)(lib.Error("root solver returned NaN")))
+    val solver = new BrentSolver(settings.absAccuracy)
+    val uf: UnivariateFunction = (x: Double) => f(x)
+    Either.catchNonFatal(solver.solve(settings.maxIters, uf, min, max))
+      .leftMap:
+        case nb: NoBracketingException => NotBracketed(nb.getLo, nb.getFLo, nb.getHi, nb.getFHi)
+        case t                         => lib.Error(t.getMessage)
+      .flatTap(root => Either.raiseWhen(root.isNaN)(lib.Error("root solver returned NaN")))
