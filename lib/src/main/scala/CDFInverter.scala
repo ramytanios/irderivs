@@ -4,8 +4,6 @@ import lib.dtos.Moneyness
 import lib.syntax.*
 import org.apache.commons.math3.distribution.NormalDistribution
 
-import math.*
-
 enum Arbitrage:
   case LeftAsymptoticCDF
   case LeftAsymptoticPut
@@ -97,7 +95,7 @@ object CDFInverter:
       lks <- leftStrikes(mks.head)
       rks <- rightStrikes(mks.last)
       ks = (lks ++ mks ++ rks ++ ksQuoted.toIndexedSeq).distinct.sorted
-      cdfs = ks.map(cdfImplied).map(cdf => max(0.0, min(cdf, 1.0)))
-      _ <- cdfs.indices.init.find(i => cdfs(i) > cdfs(i + 1)).toLeft(())
+      cs = ks.map(cdfImplied)
+      _ <- cs.indices.init.find(i => cs(i) >= cs(i + 1)).toLeft(())
         .leftMap(i => Arbitrage.Density(ks(i), ks(i + 1)))
-    yield LinearInterpolation.withLinearExtrapolation(cdfs, ks)
+    yield LinearInterpolation.withLinearExtrapolation(cs, ks)
