@@ -36,43 +36,49 @@ object VolatilitySmile:
 
     val w = 1.0 / 3.0
 
+    val dL = spline.fstDerivative(kMin)
+    val dR = spline.fstDerivative(kMax)
+
+    val aL = dL / vL / w
+    val aR = dR / vR / w
+
+    val bL = vL - dL * kMin
+    val bR = vR - dR * kMax
+
+    val cL = 2 * pow(dL, 2) / vL / w
+    val cR = 2 * pow(dR, 2) / vR / w
+
     new VolatilitySmile:
 
       def apply(k: Double): Double =
         if k <= kMin then
-          val dL = spline.fstDerivative(kMin)
-          if dL <= 0 then dL * k + (vL - dL * kMin)
-          else vL * (1 + w * tanh(dL / vL / w * (k - kMin)))
+          if dL <= 0 then dL * k + bL
+          else vL * (1 + w * tanh(aL * (k - kMin)))
         else if k >= kMax then
-          val dR = spline.fstDerivative(kMax)
-          if dR >= 0 then dR * k + (vR - dR * kMax)
-          else vR * (1 + w * tanh(dR / vR / w * (k - kMax)))
+          if dR >= 0 then dR * k + bR
+          else vR * (1 + w * tanh(aR * (k - kMax)))
         else spline(k)
 
       def fstDerivative(k: Double): Double =
         if k <= kMin then
-          val dL = spline.fstDerivative(kMin)
           if dL <= 0 then dL
-          else dL * (1.0 - pow(tanh(dL / vL / w * (k - kMin)), 2))
+          else dL * (1.0 - pow(tanh(aL * (k - kMin)), 2))
         else if k >= kMax then
-          val dR = spline.fstDerivative(kMax)
           if dR >= 0 then dR
-          else dR * (1.0 - pow(tanh(dR / vR / w * (k - kMax)), 2))
+          else dR * (1.0 - pow(tanh(aR * (k - kMax)), 2))
         else spline.fstDerivative(k)
 
       def sndDerivative(k: Double): Double =
         if k <= kMin then
-          val dL = spline.fstDerivative(kMin)
           if dL <= 0 then 0.0
           else
-            val t = tanh(dL / vL / w * (k - kMin))
-            2 * pow(dL, 2) / vL / w * t * (t * t - 1)
+            val t = tanh(aL * (k - kMin))
+            cL * t * (t * t - 1)
         else if k >= kMax then
-          val dR = spline.fstDerivative(kMax)
           if dR >= 0 then 0.0
           else
-            val t = tanh(dR / vR / w * (k - kMax))
-            2 * pow(dR, 2) / vR / w * t * (t * t - 1)
+            val t = tanh(aR * (k - kMax))
+            cR * t * (t * t - 1)
         else spline.sndDerivative(k)
 
   def flat(vol: Double): VolatilitySmile =
