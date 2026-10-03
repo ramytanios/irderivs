@@ -33,7 +33,7 @@ object CDFInverter:
       vol: VolatilitySmile,
       forward: Forward[T],
       params: Params = Params()
-  ): Either[Arbitrage, Double => Double] =
+  ): Either[lib.Error, Either[Arbitrage, Double => Double]] =
 
     val dt = t.yearFractionTo(expiry)(using DateLike[T], DayCounter.Act365).value
 
@@ -90,12 +90,14 @@ object CDFInverter:
           Arbitrage.RightAsymptoticCall
         )
 
-    for
-      mks <- middleStrikes
-      lks <- leftStrikes(mks.head)
-      rks <- rightStrikes(mks.last)
-      ks = (lks ++ mks ++ rks ++ ksQuoted.toIndexedSeq).distinct.sorted
-      cs = ks.map(cdfImplied)
-      _ <- cs.indices.init.find(i => cs(i) >= cs(i + 1)).toLeft(())
-        .leftMap(i => Arbitrage.Density(ks(i), ks(i + 1)))
-    yield LinearInterpolation.withLinearExtrapolation(cs, ks)
+    Either.catchNonFatal:
+      for
+        mks <- middleStrikes
+        lks <- leftStrikes(mks.head)
+        rks <- rightStrikes(mks.last)
+        ks = (lks ++ mks ++ rks ++ ksQuoted.toIndexedSeq).distinct.sorted
+        cs = ks.map(cdfImplied)
+        _ <- cs.indices.init.find(i => cs(i) >= cs(i + 1)).toLeft(())
+          .leftMap(i => Arbitrage.Density(ks(i), ks(i + 1)))
+      yield LinearInterpolation.withLinearExtrapolation(cs, ks)
+    .leftMap(th => lib.Error(th.getMessage))

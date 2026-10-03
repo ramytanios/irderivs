@@ -49,8 +49,8 @@ class CDFInverterSuite extends munit.FunSuite:
 
     val smile0 = VolatilitySmile(ks.toIndexedSeq, vs0.toIndexedSeq)
     CDFInverter(t0, t, Nil, smile0, forward, params) match
-      case Left(value)  => fail(s"should be arbitrage free, got $value")
-      case Right(value) => ()
+      case Right(Right(value)) => ()
+      case other               => fail(s"should be arbitrage free, got $other")
 
   test("left asymptotic arbitrage"):
 
@@ -60,8 +60,8 @@ class CDFInverterSuite extends munit.FunSuite:
     ).map(_ / 10000)
     val smile1 = VolatilitySmile(ks.toIndexedSeq, vs1.toIndexedSeq)
     CDFInverter(t0, t, Nil, smile1, forward, params) match
-      case Left(Arbitrage.LeftAsymptoticPut) => ()
-      case other                             => fail(s"should have left asymptotic arbitrage, got $other")
+      case Right(Left(Arbitrage.LeftAsymptoticPut)) => ()
+      case other => fail(s"should have left asymptotic arbitrage, got $other")
 
   test("density arbitrage"):
 
@@ -71,8 +71,8 @@ class CDFInverterSuite extends munit.FunSuite:
       ).map(_ / 10000)
     val smile2 = VolatilitySmile(ks.toIndexedSeq, vs2.toIndexedSeq)
     CDFInverter(t0, t, Nil, smile2, forward, params) match
-      case Left(Arbitrage.Density(_, _)) => ()
-      case other                         => fail(s"shoud have density arbitrage, got $other")
+      case Right(Left(Arbitrage.Density(_, _))) => ()
+      case other                                => fail(s"shoud have density arbitrage, got $other")
 
   test("right asymptotic arbitrage"):
 
@@ -82,5 +82,5 @@ class CDFInverterSuite extends munit.FunSuite:
     ).map(_ / 10000)
     val smile3 = VolatilitySmile(ks.toIndexedSeq, vs3.toIndexedSeq)
     CDFInverter(t0, t, Nil, smile3, forward, params) match
-      case Left(Arbitrage.RightAsymptoticCall) => ()
-      case other                               => fail(s"should have right asymptotic arbitrage, got $other")
+      case Right(Left(Arbitrage.RightAsymptoticCall)) => ()
+      case other => fail(s"should have right asymptotic arbitrage, got $other")

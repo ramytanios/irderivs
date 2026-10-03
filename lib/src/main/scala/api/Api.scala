@@ -62,14 +62,14 @@ class Api[T: lib.DateLike](val market: Market[T]):
             val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
             val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
             val params = CDFInverter.Params()
-            ((tenor -> expiry) -> CDFInverter(
+            CDFInverter(
               market.t,
               t,
               msQuoted,
               surface(t),
               rate.forward,
               params
-            ).swap.toOption).asRight
+            ).map(result => (tenor -> expiry) -> result.swap.toOption)
 
   def sampleVolSmile(
       currency: dtos.Currency,
