@@ -39,7 +39,9 @@ object CDFInverter:
 
     val fwd = forward(expiry)
 
-    val atmStdv = vol(fwd) * math.sqrt(dt)
+    val atmVol = vol(fwd)
+
+    val atmStdv = atmVol * math.sqrt(dt)
 
     // φ⁻¹ of N(F,σ²T)
     val cdfInvN = NormalDistribution(fwd, atmStdv).inverseCumulativeProbability
@@ -65,7 +67,7 @@ object CDFInverter:
          Either.cond(cut >= 0, points(cut)(0), Arbitrage.LeftAsymptoticCDF)
       ) .flatMap: kMin =>
         val put = bachelier.price(dtos.OptionType.Put, fwd, kMin, dt, vol(kMin), 1.0)
-        val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, vol(fwd), 1.0)
+        val putAtm = bachelier.price(dtos.OptionType.Put, fwd, fwd, dt, atmVol, 1.0)
         Either.cond(
           put <= params.relPriceThreshold * putAtm,
           uniform(kMin, kL, params.nTail).dropRight(1),
@@ -83,7 +85,7 @@ object CDFInverter:
          Either.cond(cut >= 0, points(cut)(0), Arbitrage.RightAsymptoticCDF)
       ) .flatMap: kMax =>
         val call = bachelier.price(dtos.OptionType.Call, fwd, kMax, dt, vol(kMax), 1.0)
-        val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, vol(fwd), 1.0)
+        val callAtm = bachelier.price(dtos.OptionType.Call, fwd, fwd, dt, atmVol, 1.0)
         Either.cond(
           call <= params.relPriceThreshold * callAtm,
           uniform(kR, kMax, params.nTail).drop(1),

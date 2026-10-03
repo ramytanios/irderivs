@@ -35,10 +35,11 @@ object bachelier:
       vol: Double => Double,
       fstDerivVol: Double => Double
   ): Double => Double =
+    val sdt = sqrt(dt)
     k =>
-      val stdv = vol(k) * sqrt(dt)
+      val stdv = vol(k) * sdt
       val d = (forward - k) / stdv
-      1 - cdf(d) + sqrt(dt) * fstDerivVol(k) * pdf(d)
+      1 - cdf(d) + sdt * fstDerivVol(k) * pdf(d)
 
   def impliedDensity(
       forward: Double,
