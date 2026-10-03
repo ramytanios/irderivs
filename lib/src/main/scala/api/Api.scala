@@ -57,19 +57,19 @@ class Api[T: lib.DateLike](val market: Market[T]):
   ): Either[lib.Error, List[((Tenor, Tenor), Option[Arbitrage])]] =
     tenor.flatTraverse: tenor =>
       buildVolConventions(currency, tenor).flatMap: rate =>
-        expiry.traverse: expiry =>
-          val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
-          val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
-          val params = CDFInverter.Params()
-          buildVolSurface(currency, tenor, rate).map(_(t)).map:
-            (tenor -> expiry) -> CDFInverter(
+        buildVolSurface(currency, tenor, rate).flatMap: surface =>
+          expiry.traverse: expiry =>
+            val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
+            val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
+            val params = CDFInverter.Params()
+            ((tenor -> expiry) -> CDFInverter(
               market.t,
               t,
               msQuoted,
-              _,
+              surface(t),
               rate.forward,
               params
-            ).swap.toOption
+            ).swap.toOption).asRight
 
   def sampleVolSmile(
       currency: dtos.Currency,

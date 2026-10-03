@@ -28,6 +28,18 @@ object utils:
     cs.indices.init.forall: i =>
       cs(i + 1) > cs(i)
 
+  /** A thread-safe memoization of a total function `A => B`: each distinct input is
+    * computed on first access and the result cached for every subsequent call. The key
+    * space may be unbounded (keys are discovered lazily), so it fits functions that must
+    * accept any input rather than a known finite set. */
+  trait Memoized[A, B] extends (A => B)
+
+  object Memoized:
+    def apply[A, B](f: A => B): Memoized[A, B] =
+      new Memoized[A, B]:
+        private val cache = new java.util.concurrent.ConcurrentHashMap[A, B]
+        def apply(a: A): B = cache.computeIfAbsent(a, (a: A) => f(a))
+
 extension [C](cs: IndexedSeq[C])
   def searchBy[A: Ordering](by: C => A)(elem: A): utils.BinarySearch =
     utils.binarySearchBy(cs, by)(elem)
