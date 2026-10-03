@@ -50,17 +50,26 @@ class Api[T: lib.DateLike](val market: Market[T]):
   ): List[(dtos.Moneyness, Double)] =
     market.volSurface(currency, tenor).toOption.flatMap(_.get(expiry)).orEmpty
 
-  def arbitrageCheck(
+  def arbitrageMatrix(
       currency: dtos.Currency,
-      tenor: Tenor,
-      expiry: Tenor
-  ): Either[lib.Error, Option[Arbitrage]] =
-    buildVolConventions(currency, tenor).flatMap: rate =>
-      val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
-      val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
-      val params = CDFInverter.Params()
-      buildVolSurface(currency, tenor).map(_(t)).map:
-        CDFInverter(market.t, t, msQuoted, _, rate.forward, params).swap.toOption
+      tenor: List[Tenor],
+      expiry: List[Tenor]
+  ): Either[lib.Error, List[((Tenor, Tenor), Option[Arbitrage])]] =
+    tenor.flatTraverse: tenor =>
+      buildVolConventions(currency, tenor).flatMap: rate =>
+        expiry.traverse: expiry =>
+          val t = rate.calendar.addBusinessPeriod(market.t, expiry)(using rate.bdConvention)
+          val msQuoted = readMarketQuotes(currency, tenor, expiry).map((m, _) => m)
+          val params = CDFInverter.Params()
+          buildVolSurface(currency, tenor, rate).map(_(t)).map:
+            (tenor -> expiry) -> CDFInverter(
+              market.t,
+              t,
+              msQuoted,
+              _,
+              rate.forward,
+              params
+            ).swap.toOption
 
   def sampleVolSmile(
       currency: dtos.Currency,

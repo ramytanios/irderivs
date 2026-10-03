@@ -91,8 +91,9 @@ object Handler:
           request,
           params =>
             val market = Market[LocalDate](params.tRef, params.market, params.static)
-            new Api(market).arbitrageCheck(params.currency, params.tenor, params.expiry)
-              .map(res => JsonObject("arbitrage" -> arbitrageToJson(res)).toJson)
+            new Api(market).arbitrageMatrix(params.currency, List(params.tenor), List(params.expiry))
+              .flatMap(_.headOption.toRight[lib.Error](lib.Error.Generic("missing arbirage result")))
+              .map(res => JsonObject("arbitrage" -> arbitrageToJson(res(1))).toJson)
         )
 
       case "arbitrage-matrix" => impl[ArbitrageMatrixParams](
@@ -104,13 +105,15 @@ object Handler:
                 val tenors = cube.keysIterator.toList
                 val expiries = cube.values.flatMap(_.keysIterator).toList.distinct
                 val api = new Api(market)
-                tenors.flatTraverse: tenor =>
-                  expiries.traverse: expiry =>
-                    api.arbitrageCheck(params.currency, tenor, expiry).map((tenor, expiry, _))
-                .map: matrix =>
-                  JsonObject("matrix" -> matrix.map((te, ex, ar) =>
-                    (te, ex, arbitrageToJson(ar)).asJson
-                  ).asJson).toJson
+                api.arbitrageMatrix(
+                  params.currency,
+                  tenors.map(t => t: lib.quantities.Tenor),
+                  expiries.map(t => t: lib.quantities.Tenor)
+                )
+                  .map: matrix =>
+                    JsonObject("matrix" -> matrix.map { case ((te, ex), ar) =>
+                      (te: dtos.Tenor, ex: dtos.Tenor, arbitrageToJson(ar)).asJson
+                    }.asJson).toJson
               case dtos.Volatility.Flat(_) =>
                 lib.Error.Generic("arbitrage matrix does not support flat cube").asLeft
         )
