@@ -26,46 +26,49 @@ object VolatilityCube:
 
     tenor =>
 
-      def mkFn(f: VolatilitySmile => Double => Double): (t: T, fwd: Double) => Double => Double =
+      val mkFns: (T, Double) => (VolatilitySmile => Double => Double) => Double => Double =
         if tenor < tenorMin then
+          val pillar = surfaces.head(1)
+          val pillarFwd = forward(tenorMin)
           (t: T, _: Double) =>
-            val g = f(surfaces.head(1)(t))
-            val fMin = forward(tenorMin)(t)
-            (m: Double) => g(fMin + m)
+            val s = pillar(t)
+            val fMin = pillarFwd(t)
+            f => (m: Double) => f(s)(fMin + m)
         else if tenor > tenorMax then
+          val pillar = surfaces.last(1)
+          val pillarFwd = forward(tenorMax)
           (t: T, _: Double) =>
-            val g = f(surfaces.last(1)(t))
-            val fMax = forward(tenorMax)(t)
-            (m: Double) => g(fMax + m)
+            val s = pillar(t)
+            val fMax = pillarFwd(t)
+            f => (m: Double) => f(s)(fMax + m)
         else
           surfaces.searchBy(_(0))(tenor) match
             case BinarySearch.Found(i) =>
+              val pillar = surfaces(i)(1)
               (t: T, fwd: Double) =>
-                val g = f(surfaces(i)(1)(t))
-                (m: Double) => g(fwd + m)
+                val s = pillar(t)
+                f => (m: Double) => f(s)(fwd + m)
             case BinarySearch.InsertionLoc(i) =>
               val (tenorL, surfaceL) = surfaces(i - 1)
               val (tenorR, surfaceR) = surfaces(i)
               val w = (tenor.toYf - tenorL.toYf) / (tenorR.toYf - tenorL.toYf)
-              (t: T,_: Double) =>
-                val gL = f(surfaceL(t))
-                val gR = f(surfaceR(t))
+              (t: T, _: Double) =>
+                val sL = surfaceL(t)
+                val sR = surfaceR(t)
                 val fL = forward(tenorL)(t)
                 val fR = forward(tenorR)(t)
-                (m: Double) => (1 - w) * gL(fL + m) + w * gR(fR + m)
-
-      val applyFn = mkFn(_.apply)
-      val fstDerivativeFn = mkFn(_.fstDerivative)
-      val sndDerivativeFn = mkFn(_.sndDerivative)
+                f => (m: Double) => (1 - w) * f(sL)(fL + m) + w * f(sR)(fR + m)
 
       val forwardFn = forward(tenor)
 
       t =>
 
         val fwd = forwardFn(t)
-        val applyFnM = applyFn(t, fwd)
-        val fstDerivativeFnM = fstDerivativeFn(t, fwd)
-        val sndDerivativeFnM = sndDerivativeFn(t, fwd)
+        val mk = mkFns(t, fwd)
+
+        val applyFnM = mk(_.apply)
+        val fstDerivativeFnM = mk(_.fstDerivative)
+        val sndDerivativeFnM = mk(_.sndDerivative)
 
         new VolatilitySmile:
           def apply(k: Double): Double = applyFnM(k - fwd)

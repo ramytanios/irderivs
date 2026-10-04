@@ -29,100 +29,106 @@ object VolatilitySurface:
     given DayCounter = DayCounter.Act365
 
     t =>
+
       val fwd = forward(t)
 
-      new VolatilitySmile:
+      def blend(
+          fn0: Double => Double,
+          gn0: Double => Double,
+          fn1: Double => Double,
+          gn1: Double => Double,
+          f0: Double,
+          f1: Double,
+          w: Double,
+          dt: Double,
+          dt0: Double,
+          dt1: Double,
+          m: Double
+      ) =
+        val k0 = f0 + m
+        val k1 = f1 + m
+        1.0 / dt * ((1.0 - w) * dt0 * fn0(k0) * gn0(k0) + w * dt1 * fn1(k1) * gn1(k1))
 
-        def L(left: (T, Double => Double), right: (T, Double => Double), m: Double) =
-          val (tL, fL) = left
-          val (tR, fR) = right
-          val w = tL.yearFractionTo(t) / tL.yearFractionTo(tR)
-          val dt = tRef.yearFractionTo(t).value
-          val dtL = tRef.yearFractionTo(tL).value
-          val dtR = tRef.yearFractionTo(tR).value
-          1.0 / dt * (
-            (1.0 - w) * dtL * pow(fL(forward(tL) + m), 2) + w * dtR * pow(fR(forward(tR) + m), 2)
-          )
+      def mkFn(
+          f: VolatilitySmile => Double => Double,
+          interp: Int => Double => Double
+      ): Double => Double =
+        if t < tMin || smiles.size == 1 then
+          val g = f(smiles.head(1).value)
+          val fMin = forward(tMin)
+          (m: Double) => g(fMin + m)
+        else if t > tMax then
+          val g = f(smiles.last(1).value)
+          val fMax = forward(tMax)
+          (m: Double) => g(fMax + m)
+        else
+          smiles.searchBy(_(0))(t) match
+            case BinarySearch.Found(i) =>
+              val g = f(smiles(i)(1).value)
+              (m: Double) => g(m + fwd)
+            case BinarySearch.InsertionLoc(idx) => interp(idx)
 
-        // bilinear counterpart of `L`: combines the product of two smile functions per
-        // pillar instead of the square, so it can express derivatives of `L`.
-        def L2(
-            left: (T, Double => Double, Double => Double),
-            right: (T, Double => Double, Double => Double),
-            m: Double
-        ) =
-          val (tL, fL, gL) = left
-          val (tR, fR, gR) = right
-          val w = tL.yearFractionTo(t) / tL.yearFractionTo(tR)
-          val dt = tRef.yearFractionTo(t).value
-          val dtL = tRef.yearFractionTo(tL).value
-          val dtR = tRef.yearFractionTo(tR).value
-          val kL = forward(tL) + m
-          val kR = forward(tR) + m
-          1.0 / dt * (
-            (1.0 - w) * dtL * fL(kL) * gL(kL) + w * dtR * fR(kR) * gR(kR)
-          )
+      def interp(iloc: Int): Double => Double =
+        val (t0, s0) = smiles(iloc - 1)
+        val (t1, s1) = smiles(iloc)
+        val v0: Double => Double = s0.value.apply
+        val v1: Double => Double = s1.value.apply
+        val w = t0.yearFractionTo(t) / t0.yearFractionTo(t1)
+        val dt = tRef.yearFractionTo(t).value
+        val dt0 = tRef.yearFractionTo(t0).value
+        val dt1 = tRef.yearFractionTo(t1).value
+        val f0 = forward(t0)
+        val f1 = forward(t1)
+        (m: Double) => sqrt(blend(v0, v0, v1, v1, f0, f1, w, dt, dt0, dt1, m))
 
-        def mkFn(
-            f: VolatilitySmile => Double => Double,
-            interp: (Int, Double) => Double
-        ): (m: Double) => Double =
-          if t < tMin || smiles.size == 1 then
-            val g = f(smiles.head(1).value)
-            val fMin = forward(tMin)
-            (m: Double) => g(fMin + m)
-          else if t > tMax then
-            val g = f(smiles.last(1).value)
-            val fMax = forward(tMax)
-            (m: Double) => g(fMax + m)
-          else
-            smiles.searchBy(_(0))(t) match
-              case BinarySearch.Found(i) =>
-                val g = f(smiles(i)(1).value)
-                (m: Double) => g(m + fwd)
-              case BinarySearch.InsertionLoc(idx) => (m: Double) => interp(idx, m)
+      def fstDerivativeInterp(iloc: Int): Double => Double =
+        val (t0, s0) = smiles(iloc - 1)
+        val (t1, s1) = smiles(iloc)
+        val sk0 = s0.value
+        val sk1 = s1.value
+        val v0 = sk0.apply
+        val v1 = sk1.apply
+        val d0 = sk0.fstDerivative
+        val d1 = sk1.fstDerivative
+        val w = t0.yearFractionTo(t) / t0.yearFractionTo(t1)
+        val dt = tRef.yearFractionTo(t).value
+        val dt0 = tRef.yearFractionTo(t0).value
+        val dt1 = tRef.yearFractionTo(t1).value
+        val f0 = forward(t0)
+        val f1 = forward(t1)
+        (m: Double) =>
+          val c = blend(v0, v0, v1, v1, f0, f1, w, dt, dt0, dt1, m)
+          blend(v0, d0, v1, d1, f0, f1, w, dt, dt0, dt1, m) / sqrt(c)
 
-        def interp(iloc: Int, m: Double): Double =
-          val (t0, s0) = smiles(iloc - 1)
-          val (t1, s1) = smiles(iloc)
-          sqrt(L(t0 -> s0.value, t1 -> s1.value, m))
-
-        def fstDerivativeInterp(iloc: Int, m: Double): Double =
-          val (t0, s0) = smiles(iloc - 1)
-          val (t1, s1) = smiles(iloc)
-          val sk0 = s0.value
-          val sk1 = s1.value
-          val v0: Double => Double = sk0.apply
-          val v1: Double => Double = sk1.apply
-          val d0: Double => Double = sk0.fstDerivative
-          val d1: Double => Double = sk1.fstDerivative
-          // sigma = sqrt(c), c = L2(vol, vol); sigma' = c'/(2 sqrt c) = L2(vol, vol')/sqrt(c)
-          val c = L2((t0, v0, v0), (t1, v1, v1), m)
-          L2((t0, v0, d0), (t1, v1, d1), m) / sqrt(c)
-
-        def sndDerivativeInterp(iloc: Int, m: Double): Double =
-          val (t0, s0) = smiles(iloc - 1)
-          val (t1, s1) = smiles(iloc)
-          val sk0 = s0.value
-          val sk1 = s1.value
-          val v0: Double => Double = sk0.apply
-          val v1: Double => Double = sk1.apply
-          val d0: Double => Double = sk0.fstDerivative
-          val d1: Double => Double = sk1.fstDerivative
-          val e0: Double => Double = sk0.sndDerivative
-          val e1: Double => Double = sk1.sndDerivative
-          // sigma'' = c''/(2 sqrt c) - (c')^2/(4 c^{3/2}), with
-          // c = L2(vol,vol), c' = 2 L2(vol,vol'), c'' = 2 (L2(vol',vol') + L2(vol,vol''))
-          val c = L2((t0, v0, v0), (t1, v1, v1), m)
-          val cx = L2((t0, v0, d0), (t1, v1, d1), m)
-          val a = L2((t0, d0, d0), (t1, d1, d1), m)
-          val b = L2((t0, v0, e0), (t1, v1, e1), m)
+      def sndDerivativeInterp(iloc: Int): Double => Double =
+        val (t0, s0) = smiles(iloc - 1)
+        val (t1, s1) = smiles(iloc)
+        val sk0 = s0.value
+        val sk1 = s1.value
+        val v0 = sk0.apply
+        val v1 = sk1.apply
+        val d0 = sk0.fstDerivative
+        val d1 = sk1.fstDerivative
+        val e0 = sk0.sndDerivative
+        val e1 = sk1.sndDerivative
+        val w = t0.yearFractionTo(t) / t0.yearFractionTo(t1)
+        val dt = tRef.yearFractionTo(t).value
+        val dt0 = tRef.yearFractionTo(t0).value
+        val dt1 = tRef.yearFractionTo(t1).value
+        val f0 = forward(t0)
+        val f1 = forward(t1)
+        (m: Double) =>
+          val c = blend(v0, v0, v1, v1, f0, f1, w, dt, dt0, dt1, m)
+          val cx = blend(v0, d0, v1, d1, f0, f1, w, dt, dt0, dt1, m)
+          val a = blend(d0, d0, d1, d1, f0, f1, w, dt, dt0, dt1, m)
+          val b = blend(v0, e0, v1, e1, f0, f1, w, dt, dt0, dt1, m)
           (a + b) / sqrt(c) - pow(cx, 2) / c / sqrt(c)
 
-        val applyFn = mkFn(_.apply, interp)
-        val fstDerivativeFn = mkFn(_.fstDerivative, fstDerivativeInterp)
-        val sndDerivativeFn = mkFn(_.sndDerivative, sndDerivativeInterp)
+      val applyFn = mkFn(_.apply, interp)
+      val fstDerivativeFn = mkFn(_.fstDerivative, fstDerivativeInterp)
+      val sndDerivativeFn = mkFn(_.sndDerivative, sndDerivativeInterp)
 
+      new VolatilitySmile:
         def apply(k: Double): Double = applyFn(k - fwd)
         def fstDerivative(k: Double): Double = fstDerivativeFn(k - fwd)
         def sndDerivative(k: Double): Double = sndDerivativeFn(k - fwd)
