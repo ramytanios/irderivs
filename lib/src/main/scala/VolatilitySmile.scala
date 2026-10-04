@@ -86,7 +86,5 @@ object VolatilitySmile:
     new VolatilitySmile:
 
       def apply(strike: Double): Double = vol
-
       def fstDerivative(strike: Double): Double = 0.0
-
       def sndDerivative(strike: Double): Double = 0.0

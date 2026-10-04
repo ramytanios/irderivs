@@ -43,10 +43,8 @@ object CDFInverter:
 
     val atmStdv = atmVol * math.sqrt(dt)
 
-    // φ⁻¹ of N(F,σ²T)
     val cdfInvN = NormalDistribution(fwd, atmStdv).inverseCumulativeProbability
 
-    // cdf implied from vol smile
     val cdfImplied = bachelier.impliedCumulative(fwd, dt, vol.apply, vol.fstDerivative)
 
     val ksQuoted = msQuoted.map(_.value + fwd)
