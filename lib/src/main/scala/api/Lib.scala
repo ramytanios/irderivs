@@ -2,20 +2,25 @@ package lib.api
 
 import cats.syntax.all.*
 import lib.dtos
+import lib.dtos.VolatilityMarketConventions.SwapRate
 import lib.quantities.*
 import lib.quantities.Tenor.toYf
+import lib.utils.Memoized
 
 import scala.math.Ordering.Implicits.*
-import lib.dtos.VolatilityMarketConventions.SwapRate
 
 class Lib[T: lib.DateLike](market: Market[T]):
 
+  private val yieldCurveCache: Memoized[dtos.CurveId, Either[lib.Error, lib.YieldCurve[T]]] =
+    Memoized: curve =>
+      market.yieldCurve(curve).map:
+        case dtos.YieldCurve.Discounts(discounts) =>
+          lib.YieldCurve(market.t, discounts.toIndexedSeq)
+        case dtos.YieldCurve.ContinuousCompounding(rate) =>
+          lib.YieldCurve.continuousCompounding(market.t, rate)
+
   def buildYieldCurve(curve: dtos.CurveId): Either[lib.Error, lib.YieldCurve[T]] =
-    market.yieldCurve(curve).map:
-      case dtos.YieldCurve.Discounts(discounts) =>
-        lib.YieldCurve(market.t, discounts.toIndexedSeq)
-      case dtos.YieldCurve.ContinuousCompounding(rate) =>
-        lib.YieldCurve.continuousCompounding(market.t, rate)
+    yieldCurveCache(curve)
 
   def buildCalendar(calendar: dtos.Calendar[T]): Either[lib.Error, lib.Calendar[T]] =
     Either.catchNonFatal(lib.Calendar.fromHolidays(calendar.holidays.toIndexedSeq)).leftMap: th =>
@@ -55,7 +60,7 @@ class Lib[T: lib.DateLike](market: Market[T]):
         val surfaces = cube.toList.traverse: (tenor, _) =>
           buildVolSurface(currency, tenor).tupleLeft(tenor)
         .map(_.toIndexedSeq)
-        val underlyings = lib.utils.Memoized[Tenor, lib.Underlying[T]]: tenor =>
+        val underlyings = Memoized[Tenor, lib.Underlying[T]]: tenor =>
           buildVolConventions(conventions, tenor).valueOr(throw _)
         val forward = (tenor: Tenor) => underlyings(tenor).forward
         surfaces.map: surfaces =>

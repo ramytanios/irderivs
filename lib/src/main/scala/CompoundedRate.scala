@@ -12,12 +12,12 @@ case class CompoundingPeriod[T](
 )
 
 class CompoundedRate[T: DateLike](
-    val rate: Libor[T],
+    val compoundingRate: Libor[T],
     val schedule: Vector[CompoundingPeriod[T]],
     val fixings: Map[T, Double]
 ):
 
-  given DayCounter = rate.dayCounter
+  given DayCounter = compoundingRate.dayCounter
 
   val from = schedule.head.startAt
   val to = schedule.last.endAt
@@ -30,7 +30,7 @@ class CompoundedRate[T: DateLike](
   def compoundingFactor(toInclusive: T): Double =
     schedule.collect:
       case CompoundingPeriod(fixingAt, startAt, endAt) if fixingAt <= toInclusive =>
-        val fixing = fixings.getOrElse(fixingAt, rate.forward(fixingAt))
+        val fixing = fixings.getOrElse(fixingAt, compoundingRate.forward(fixingAt))
         (1 + startAt.yearFractionTo(endAt) * fixing)
     .product
 
@@ -45,14 +45,13 @@ class CompoundedRate[T: DateLike](
     Either.raiseWhen(t > lastFixingAt)(
       Error.Generic(s"$t is after last fixing $lastFixingAt")
     ).map: _ =>
-      if t < firstFixingAt then
-        1.0 / rate.resetCurve.discount(from, to)
+      if t < firstFixingAt then 1.0 / compoundingRate.resetCurve.discount(from, to)
       else if t == lastFixingAt then fullCompoundingFactor()
       else
         val obsIdx = findObservationIdx(t)
         val futIdx = obsIdx + 1
         compoundingFactor(schedule(obsIdx).fixingAt) /
-          rate.resetCurve.discount(schedule(futIdx).startAt, to)
+          compoundingRate.resetCurve.discount(schedule(futIdx).startAt, to)
     .map(f => (f - 1.0) / dcf.value)
 
 object CompoundedRate:
@@ -60,19 +59,27 @@ object CompoundedRate:
   def apply[T: DateLike](
       from: T,
       to: T,
-      rate: Libor[T],
+      compoundingRate: Libor[T],
       stub: dtos.StubConvention,
       direction: dtos.Direction,
-      fixings: Map[T, Double]
+      fixings: Map[T, Double] = Map.empty[T, Double]
   ): CompoundedRate[T] =
 
     val schedule: Vector[CompoundingPeriod[T]] =
-      Schedule(from, to, rate.tenor, rate.calendar, rate.bdConvention, stub, direction)
+      Schedule(
+        from,
+        to,
+        compoundingRate.tenor,
+        compoundingRate.calendar,
+        compoundingRate.bdConvention,
+        stub,
+        direction
+      )
         .sliding(2)
         .collect:
           case Seq(t0, t1) =>
-            val fixingDate = rate.settlementRule.fixingAt(t0)
+            val fixingDate = compoundingRate.settlementRule.fixingAt(t0)
             CompoundingPeriod(fixingDate, t0, t1)
         .toVector
 
-    new CompoundedRate[T](rate, schedule, fixings)
+    new CompoundedRate[T](compoundingRate, schedule, fixings)

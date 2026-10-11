@@ -1,9 +1,9 @@
 package lib.dtos
 
 import io.circe.*
+import io.circe.derivation.*
 import io.circe.derivation.Configuration
 import io.circe.derivation.ConfiguredCodec
-import io.circe.derivation.*
 
 import VolatilityMarketConventions.*
 

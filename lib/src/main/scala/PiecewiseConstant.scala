@@ -1,0 +1,30 @@
+package lib
+
+class PiecewiseConstant(knots: IndexedSeq[Double], values: IndexedSeq[Double])
+    extends (Double => Double):
+
+  require(
+    knots.size == values.size,
+    s"arrays's sizes do not match, got ${knots.size} knots and ${values.size} values"
+  )
+  require(knots.nonEmpty, "expected at least one piece")
+  require(knots.isStrictlyIncreasing, "knots must be stricly increasing")
+
+  def apply(x: Double): Double =
+    val i = knots.indexWhere(_ > x)
+    if i < 0 then values.last else values(i)
+
+  def foldPieces[A](from: Double, to: Double, z: A)(op: (A, Double, Double, Double) => A): A =
+    require(to >= from, "to must be >= from")
+    var acc = z
+    var lo = from
+    while lo < to do
+      val i = knots.indexWhere(_ > lo)
+      val hi = if i < 0 then to else math.min(knots(i), to)
+      val value = if i < 0 then values.last else values(i)
+      acc = op(acc, lo, hi, value)
+      lo = hi
+    acc
+
+  def append(knot: Double, value: Double): PiecewiseConstant =
+    PiecewiseConstant(knots :+ knot, values :+ value)

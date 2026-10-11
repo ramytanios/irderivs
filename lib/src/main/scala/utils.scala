@@ -28,10 +28,12 @@ object utils:
     cs.indices.init.forall: i =>
       cs(i + 1) > cs(i)
 
-  /** A thread-safe memoization of a total function `A => B`: each distinct input is
-    * computed on first access and the result cached for every subsequent call. The key
-    * space may be unbounded (keys are discovered lazily), so it fits functions that must
-    * accept any input rather than a known finite set. */
+  /**
+   * A thread-safe memoization of a total function `A => B`: each distinct input is
+   * computed on first access and the result cached for every subsequent call. The key
+   * space may be unbounded (keys are discovered lazily), so it fits functions that must
+   * accept any input rather than a known finite set.
+   */
   trait Memoized[A, B] extends (A => B)
 
   object Memoized:

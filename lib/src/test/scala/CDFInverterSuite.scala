@@ -61,7 +61,7 @@ class CDFInverterSuite extends munit.FunSuite:
     val smile1 = VolatilitySmile(ks.toIndexedSeq, vs1.toIndexedSeq)
     CDFInverter(t0, t, Nil, smile1, forward, params) match
       case Right(Left(Arbitrage.LeftAsymptoticPut)) => ()
-      case other => fail(s"should have left asymptotic arbitrage, got $other")
+      case other                                    => fail(s"should have left asymptotic arbitrage, got $other")
 
   test("density arbitrage"):
 
@@ -83,4 +83,4 @@ class CDFInverterSuite extends munit.FunSuite:
     val smile3 = VolatilitySmile(ks.toIndexedSeq, vs3.toIndexedSeq)
     CDFInverter(t0, t, Nil, smile3, forward, params) match
       case Right(Left(Arbitrage.RightAsymptoticCall)) => ()
-      case other => fail(s"should have right asymptotic arbitrage, got $other")
+      case other                                      => fail(s"should have right asymptotic arbitrage, got $other")

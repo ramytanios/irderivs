@@ -2,8 +2,8 @@ package lib.dtos
 
 import io.circe.Codec
 import io.circe.derivation.*
-import io.circe.generic.semiauto.*
 import io.circe.derivation.ConfiguredCodec
+import io.circe.generic.semiauto.*
 
 object Payoff:
   given Configuration = Configuration.default.withDiscriminator("type")
