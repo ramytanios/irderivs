@@ -79,71 +79,18 @@ class HW1FactReprSuite extends munit.FunSuite:
     val discountCurve = YieldCurve.continuousCompounding(t0, 0.02, DayCounter.Act365)
 
     val fixingAt = t0 + Tenor.`1Y`
-    val measure = Measure(fixingAt, dtos.Currency.EUR)
 
     case class Case(
         lambda: Double,
         rate: Underlying[LocalDate]
     )
 
-    val libor = new Libor(
-      dtos.Currency.EUR,
-      Tenor.`3M`,
-      0,
-      DayCounter.Act360,
-      Calendar.all,
-      discountCurve,
-      ModifiedFollowing
-    )
-
-    val swapRate = new SwapRate(
-      Tenor.fromYears(5),
-      0,
-      0,
-      Tenor.`1Y`,
-      new Libor(
-        dtos.Currency.EUR,
-        Tenor.`3M`,
-        0,
-        DayCounter.Act360,
-        Calendar.all,
-        discountCurve,
-        ModifiedFollowing
-      ),
-      DayCounter.Act360,
-      Calendar.all,
-      ModifiedFollowing,
-      dtos.StubConvention.Short,
-      dtos.Direction.Backward,
-      discountCurve
-    )
-
-    val compoundedSwapRate = new CompoundedSwapRate(
-      Tenor.fromYears(5),
-      0,
-      0,
-      Tenor.`1Y`,
-      new Libor(
-        dtos.Currency.EUR,
-        Tenor.`1D`,
-        0,
-        DayCounter.Act360,
-        Calendar.all,
-        discountCurve,
-        ModifiedFollowing
-      ),
-      Tenor.`3M`,
-      DayCounter.Act360,
-      Calendar.all,
-      ModifiedFollowing,
-      dtos.StubConvention.Short,
-      dtos.Direction.Backward,
-      discountCurve
-    )
-
     val randCase =
       for
         lambda <- Rand.choose(-0.1, -0.01, 0.0, 0.01, 0.1)
+        libor <- rand.randLibor(discountCurve)
+        swapRate <- rand.randSwapRate(discountCurve, discountCurve, true, true)
+        compoundedSwapRate <- rand.randCompoundedSwapRate(discountCurve, discountCurve, true, true)
         rate <- Rand.choose(libor, swapRate, compoundedSwapRate)
       yield Case(lambda, rate)
 
@@ -152,6 +99,7 @@ class HW1FactReprSuite extends munit.FunSuite:
       .take(10)
       .foreach:
         case Case(lambda, rate) =>
+          val measure = Measure(fixingAt, rate.currency)
           val hw = HW1FactRepr(t0, lambda, sigma, measure)
           val hwForward = rate match
             case lr: Libor[LocalDate] =>
@@ -164,4 +112,4 @@ class HW1FactReprSuite extends munit.FunSuite:
               val (ipStart, ipEnd) = csr.interestPeriod(fixingAt)
               hw.forwardSwapRate(t0, ipStart, ipEnd, csr)(0.0)
           val deterministicForward = rate.forward(fixingAt)
-          assertEqualsDouble(hwForward, deterministicForward, 1e-10)
+          assertEqualsDouble(hwForward, deterministicForward, 1e-10, s"${rate.getClass.getName}")

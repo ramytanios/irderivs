@@ -30,6 +30,9 @@ object Rand:
 
   def pure[V](v: V): Rand[V] = State.pure(v)
 
+  def cond[V](cond: Boolean, ifTrue: V, ifFalse: => Rand[V]): Rand[V] =
+    if cond then Rand.pure(ifTrue) else ifFalse
+
   def constant[V](v: V): Rand[V] = pure(v)
 
   def normal: Rand[Double] =
