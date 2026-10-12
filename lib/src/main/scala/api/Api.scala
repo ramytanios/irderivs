@@ -16,24 +16,24 @@ class Api[T: lib.DateLike](val market: Market[T]):
         for
           caplet <- buildCaplet(p)
           rate <- caplet.rate.asRight
-          volSurface <- buildVolSurface(caplet.paymentCurrency, rate.tenor)
-          price <- caplet.price(market.t, volSurface)
+          volCube <- buildVolCube(caplet.paymentCurrency)
+          price <- caplet.price(market.t, volCube(rate.tenor))
         yield price
 
       case p: dtos.Payoff.Cap[T] =>
         for
           cap <- buildCap(p)
           rate <- cap.rate.asRight
-          volSurface <- buildVolSurface(cap.paymentCurrency, rate.tenor)
-          price <- cap.price(market.t, volSurface)
+          volCube <- buildVolCube(cap.paymentCurrency)
+          price <- cap.price(market.t, volCube(rate.tenor))
         yield price
 
       case p: dtos.Payoff.Swaption[T] =>
         for
           swaption <- buildSwaption(p)
           rate <- swaption.rate.asRight
-          volSurface <- buildVolSurface(rate.currency, rate.tenor)
-          price <- swaption.price(market.t, volSurface)
+          volCube <- buildVolCube(rate.currency)
+          price <- swaption.price(market.t, volCube(rate.tenor))
         yield price
 
       case p: dtos.Payoff.BackwardLookingCaplet[T] =>

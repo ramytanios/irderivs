@@ -26,7 +26,7 @@ class Lib[T: lib.DateLike](market: Market[T]):
     Either.catchNonFatal(lib.Calendar.fromHolidays(calendar.holidays.toIndexedSeq)).leftMap: th =>
       lib.Error.Generic(s"unable to build calendar: ${th.getMessage}")
 
-  def buildVolSurface(
+  private def buildVolSurface(
       currency: dtos.Currency,
       tenor: lib.quantities.Tenor
   ): Either[lib.Error, lib.VolatilitySurface[T]] =
