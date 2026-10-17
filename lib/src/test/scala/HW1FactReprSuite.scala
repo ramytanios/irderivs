@@ -76,8 +76,6 @@ class HW1FactReprSuite extends munit.FunSuite:
 
     val sigma = PiecewiseConstant(IndexedSeq(0.0), IndexedSeq(0.01))
 
-    val discountCurve = YieldCurve.continuousCompounding(t0, 0.02, DayCounter.Act365)
-
     val fixingAt = t0 + Tenor.`1Y`
 
     case class Case(
@@ -88,9 +86,9 @@ class HW1FactReprSuite extends munit.FunSuite:
     val randCase =
       for
         lambda <- Rand.choose(-0.1, -0.01, 0.0, 0.01, 0.1)
-        libor <- rand.randLibor(discountCurve)
-        swapRate <- rand.randSwapRate(discountCurve, discountCurve, true, true)
-        compoundedSwapRate <- rand.randCompoundedSwapRate(discountCurve, discountCurve, true, true)
+        libor <- rand.randLibor(t0)
+        swapRate <- rand.randSwapRate(t0, true, true)
+        compoundedSwapRate <- rand.randCompoundedSwapRate(t0, true, true)
         rate <- Rand.choose(libor, swapRate, compoundedSwapRate)
       yield Case(lambda, rate)
 

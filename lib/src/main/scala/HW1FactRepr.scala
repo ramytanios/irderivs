@@ -54,13 +54,6 @@ class HW1FactRepr[T: DateLike](
   ): ExpAffine =
     forwardZeroCoupon(tStart, tEnd, curve, variance(t))
 
-  override def zeroCoupon(
-      tStart: T,
-      tEnd: T,
-      curve: YieldCurve[T]
-  ): ExpAffine =
-    forwardZeroCoupon(tStart, tStart, tEnd, curve)
-
   private[lib] def forwardLibor(
       tStart: T,
       tEnd: T,

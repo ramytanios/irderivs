@@ -66,6 +66,7 @@ object quantities:
     val `1Y`: Tenor = Tenor(1, Unit.Year)
     val `2Y`: Tenor = Tenor(2, Unit.Year)
     val `10Y`: Tenor = Tenor(10, Unit.Year)
+    val `20Y`: Tenor = Tenor(20, Unit.Year)
 
     def fromDays(n: Int): Tenor = Tenor(n, Unit.Day)
     def fromMonths(n: Int): Tenor = Tenor(n, Unit.Month)
