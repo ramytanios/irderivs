@@ -108,12 +108,13 @@ object rand:
       discountCurve
     )
 
-  def randCaplet(t0: LocalDate): Rand[Caplet[LocalDate]] =
+  def randCaplet(t0: LocalDate, useZeroPayDelay: Boolean = false): Rand[Caplet[LocalDate]] =
     for
-      rate <- rand.randLibor(t0)
+      rate <- rand.randLibor(t0, useZeroPayDelay)
       tFixing <- Rand.choose(Tenor.`3M`, Tenor.`3M`, Tenor.`1Y`, Tenor.`2Y`).map(t0 + _)
       (tStart, tEnd) = rate.interestPeriod(tFixing)
-      tPay <- Rand.choose(0, 1, 2, 3).map(d => tEnd + Tenor(d, Tenor.Unit.Day))
+      tPay <- if useZeroPayDelay then tEnd.pure[Rand]
+      else Rand.choose(0, 1, 2, 3).map(d => tEnd + Tenor(d, Tenor.Unit.Day))
       strike <- Rand.choose(-1, 1).map(pct => rate.forward(tFixing) * (1 + pct / 100.0))
       kind <- Rand.choose(OptionType.values*)
       discountCurve <-

@@ -25,6 +25,3 @@ class PiecewiseConstant(knots: IndexedSeq[Double], values: IndexedSeq[Double])
       acc = op(acc, lo, hi, value)
       lo = hi
     acc
-
-  def append(knot: Double, value: Double): PiecewiseConstant =
-    PiecewiseConstant(knots :+ knot, values :+ value)

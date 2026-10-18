@@ -1,8 +1,11 @@
 package lib
 
 import cats.syntax.all.*
+import lib.HW1.CalibrationInstrument
 import lib.dtos.OptionType
 import lib.literals.*
+import lib.quantities.*
+import lib.quantities.Tenor
 import lib.testsyntax.*
 import lib.testutils.oneDimPseudoRandomMC
 
@@ -58,11 +61,10 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
             sigma,
             Measure(caplet.paymentAt, caplet.paymentCurrency)
           )
-          val fwd = hw1.LNF(
+          val fwd = factRepr.factReprVar.LNF(
             caplet.rate,
             caplet.fixingAt,
-            factRepr.variance(caplet.fixingAt),
-            factRepr
+            factRepr.variance(caplet.fixingAt)
           )(1)
           assertEqualsDouble(
             (c - p) - discPay * (fwd - (1 + dcf * caplet.strike)),
@@ -165,3 +167,69 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
             0.0,
             1e-10
           )
+
+  test("HW calibration algorithm should calibrate a strip of vanilla caplets"):
+    val t0 = d"2026-10-18"
+    val volSurface = VolatilitySurface.flat[LocalDate](0.02)
+    val randStrip = rand.randCaplet(t0, true).map: tmpl =>
+      (1 to 5).toList.map: dt =>
+        val tFixing = DateLike[LocalDate].plusPeriod(t0, Tenor(dt, Tenor.Unit.Year))
+        val (tStart, tEnd) = tmpl.rate.interestPeriod(tFixing)
+        lib.Caplet[LocalDate](
+          tmpl.rate,
+          tFixing,
+          tStart,
+          tEnd,
+          tEnd,
+          tmpl.paymentCurrency,
+          tmpl.rate.forward(tFixing),
+          tmpl.discountCurve,
+          tmpl.optionType,
+          tmpl.detachment,
+          tmpl.fixings
+        )
+    (randStrip, rand.randHWLambda).tupled
+      .view
+      .take(10)
+      .foreach: (strip, lambda) =>
+        strip.traverse(_.price(t0, volSurface)).flatMap: mktPrices =>
+          val quotes = strip.map(CalibrationInstrument(_)) zip mktPrices
+          HW1.calibrate[LocalDate](t0, lambda, quotes.toVector).flatMap(hw =>
+            strip.traverse(hw.price)
+          )
+            .tupleLeft(mktPrices)
+        .failOrAssert: (mktPrices, hwPrices) =>
+          mktPrices zip hwPrices foreach ((hw, mkt) => assertEqualsDouble(hw, mkt, 1e-10))
+
+  test("HW calibration algorithm should calibrate a strip of vanilla swaptions"):
+    val t0 = d"2026-10-18"
+    val volSurface = VolatilitySurface.flat[LocalDate](0.02)
+    // A single-factor HW with one shared sigma(t) can only reprice a *consistent*
+    // strip (same underlying swap, curves and option kind, only the expiry varying);
+    // a strip of independent underlyings with mixed tenors has non-monotone required
+    // variance and is not bootstrappable. So we vary only the expiry of one template.
+    val randStrip = rand.randSwaption(t0, true).map: tmpl =>
+      (1 to 5).toList.map: dt =>
+        val tFixing = DateLike[LocalDate].plusPeriod(t0, Tenor(dt, Tenor.Unit.Year))
+        lib.Swaption[LocalDate](
+          tmpl.rate,
+          tFixing,
+          tmpl.rate.forward(tFixing),
+          tmpl.optionType,
+          tmpl.annuity,
+          tmpl.discountCurve,
+          tmpl.detachment,
+          tmpl.fixings
+        )
+    (randStrip, rand.randHWLambda).tupled
+      .view
+      .take(10)
+      .foreach: (strip, lambda) =>
+        strip.traverse(_.price(t0, volSurface)).flatMap: mktPrices =>
+          val quotes = strip.map(CalibrationInstrument(_)) zip mktPrices
+          HW1.calibrate[LocalDate](t0, lambda, quotes.toVector).flatMap(hw =>
+            strip.traverse(hw.price)
+          )
+            .tupleLeft(mktPrices)
+        .failOrAssert: (mktPrices, hwPrices) =>
+          mktPrices zip hwPrices foreach ((hw, mkt) => assertEqualsDouble(hw, mkt, 1e-10))

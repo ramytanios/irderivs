@@ -3,6 +3,8 @@ package lib
 import lib.quantities.*
 import lib.syntax.*
 
+import scala.math.*
+
 import math.exp
 
 class HW1FactRepr[T: DateLike](
@@ -12,39 +14,12 @@ class HW1FactRepr[T: DateLike](
     measure: Measure[T]
 ) extends FactRepr[T, Double](measure):
 
-  private given DayCounter = DayCounter.Act365
-  private def tau(t: T): Double = t0.yearFractionTo(t).value
+  val factReprVar = new HW1VarFactRepr(t0, lambda, measure)
+  export factReprVar.*
 
   private[lib] def variance(t: T): Double =
     sigma.foldPieces(0.0, tau(t), 0.0): (acc, lo, hi, sig) =>
       acc + sig * sig * factorKernel(lo, hi)
-
-  private[lib] def factorKernel(a: Double, b: Double): Double =
-    if lambda == 0.0 then b - a
-    else (exp(2.0 * lambda * b) - exp(2.0 * lambda * a)) / (2.0 * lambda)
-
-  private[lib] def n(x: Double): Double =
-    if lambda == 0.0 then x else (1.0 - exp(-lambda * x)) / lambda
-
-  private[lib] def B(tStart: T, tEnd: T): Double =
-    val ts = tau(tStart)
-    val te = tau(tEnd)
-    exp(-lambda * ts) * n(te - ts)
-
-  private[lib] def A(tStart: T, tEnd: T, vx: Double, curve: YieldCurve[T]): Double =
-    val bte = B(tStart, tEnd)
-    val bts = B(tStart, measure.tStar)
-    curve.discount(tStart, tEnd) * exp(-0.5 * bte * bte * vx + bte * bts * vx)
-
-  private[lib] def forwardZeroCoupon(
-      tStart: T,
-      tEnd: T,
-      curve: YieldCurve[T],
-      vx: Double
-  ): ExpAffine =
-    val a = A(tStart, tEnd, vx, curve)
-    val b = B(tStart, tEnd)
-    ExpAffine(a, b)
 
   override def forwardZeroCoupon(
       t: T,
@@ -54,7 +29,78 @@ class HW1FactRepr[T: DateLike](
   ): ExpAffine =
     forwardZeroCoupon(tStart, tEnd, curve, variance(t))
 
-  private[lib] def forwardLibor(
+  override def forwardLibor(
+      t: T,
+      tStart: T,
+      tEnd: T,
+      rate: Libor[T]
+  ): Double => Double =
+    forwardLibor(tStart, tEnd, rate, variance(t))
+
+  override def forwardCompoundedRate(
+      t: T,
+      tStart: T,
+      tEnd: T,
+      swapRate: CompoundedRate[T]
+  ): Double => Double =
+    forwardCompoundedRate(tStart, tEnd, swapRate, variance(t))
+
+  override def forwardSwapRate(
+      t: T,
+      tStart: T,
+      tEnd: T,
+      rate: SwapLike[T]
+  ): Double => Double =
+    forwardSwapRate(t, tStart, tEnd, rate, variance(t))
+
+private[lib] class HW1VarFactRepr[T: DateLike](
+    t0: T,
+    lambda: Double,
+    measure: Measure[T]
+):
+
+  private given DayCounter = DayCounter.Act365
+
+  def tau(t: T): Double = t0.yearFractionTo(t).value
+
+  def factorKernel(a: Double, b: Double): Double =
+    if lambda == 0.0 then b - a
+    else (exp(2.0 * lambda * b) - exp(2.0 * lambda * a)) / (2.0 * lambda)
+
+  def n(x: Double): Double =
+    if lambda == 0.0 then x else (1.0 - exp(-lambda * x)) / lambda
+
+  def B(tStart: T, tEnd: T): Double =
+    val ts = tau(tStart)
+    val te = tau(tEnd)
+    exp(-lambda * ts) * n(te - ts)
+
+  def A(tStart: T, tEnd: T, vx: Double, curve: YieldCurve[T]): Double =
+    val bte = B(tStart, tEnd)
+    val bts = B(tStart, measure.tStar)
+    curve.discount(tStart, tEnd) * exp(-0.5 * bte * bte * vx + bte * bts * vx)
+
+  // log-normal forward E_t^{T_p} { 1 + dcf(Ts, Te) * L(Tf, Ts, Te) }
+  inline def LNF(
+      rate: Libor[T],
+      tFixing: T,
+      vFixing: Double
+  ): (Double, Double) =
+    val (tStart, tEnd) = rate.interestPeriod(tFixing)
+    val totalVar = pow(B(tStart, tEnd), 2) * vFixing
+    totalVar -> 1 / A(tStart, tEnd, vFixing, rate.resetCurve) * exp(0.5 * totalVar)
+
+  def forwardZeroCoupon(
+      tStart: T,
+      tEnd: T,
+      curve: YieldCurve[T],
+      vx: Double
+  ): ExpAffine =
+    val a = A(tStart, tEnd, vx, curve)
+    val b = B(tStart, tEnd)
+    ExpAffine(a, b)
+
+  def forwardLibor(
       tStart: T,
       tEnd: T,
       rate: Libor[T],
@@ -68,15 +114,7 @@ class HW1FactRepr[T: DateLike](
     val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.dayCounter).value
     x => (1.0 / zcFn(x) - 1.0) / dcf
 
-  override def forwardLibor(
-      t: T,
-      tStart: T,
-      tEnd: T,
-      rate: Libor[T]
-  ): Double => Double =
-    forwardLibor(tStart, tEnd, rate, variance(t))
-
-  private[lib] def forwardCompoundedRate(
+  def forwardCompoundedRate(
       tStart: T,
       tEnd: T,
       rate: CompoundedRate[T],
@@ -90,15 +128,7 @@ class HW1FactRepr[T: DateLike](
     val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.compoundingRate.dayCounter).value
     x => (1.0 / zcFn(x) - 1.0) / dcf
 
-  override def forwardCompoundedRate(
-      t: T,
-      tStart: T,
-      tEnd: T,
-      swapRate: CompoundedRate[T]
-  ): Double => Double =
-    forwardCompoundedRate(tStart, tEnd, swapRate, variance(t))
-
-  private[lib] def forwardSwapRate(
+  def forwardSwapRate(
       t: T,
       tStart: T,
       tEnd: T,
@@ -144,11 +174,3 @@ class HW1FactRepr[T: DateLike](
     (x: Double) =>
       floatingFns.foldLeft(0.0)((acc, fn) => acc + fn(x)) /
         fixedFns.foldLeft(0.0)((acc, fn) => acc + fn(x))
-
-  override def forwardSwapRate(
-      t: T,
-      tStart: T,
-      tEnd: T,
-      rate: SwapLike[T]
-  ): Double => Double =
-    forwardSwapRate(t, tStart, tEnd, rate, variance(t))
