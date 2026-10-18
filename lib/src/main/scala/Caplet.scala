@@ -25,11 +25,11 @@ class Caplet[T: DateLike](
 
     Either
       .raiseWhen(rate.currency != paymentCurrency)(
-        Error.Generic("vanilla price does not support quanto")
+        Error.QuantoNotSupported(paymentCurrency, rate.currency)
       )
       .flatMap: _ =>
         Either.raiseWhen((interestEndAt - paymentAt).abs > 7)(
-          Error.Generic(s"vanilla pricer does not allow payment convexity")
+          Error.PaymentConvexityNotSupported(interestEndAt, paymentAt)
         )
       .map: _ =>
         if detachment.isDetached(paymentAt, t) then 0.0

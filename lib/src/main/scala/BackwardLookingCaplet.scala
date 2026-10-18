@@ -54,11 +54,11 @@ class BackwardLookingCaplet[T: DateLike](
 
     Either
       .raiseWhen(rate.currency != paymentCurrency)(
-        Error.Generic("vanilla price does not support quanto")
+        Error.QuantoNotSupported(paymentCurrency, rate.currency)
       )
       .flatMap: _ =>
         Either.raiseWhen((endAt - paymentAt).abs > 7)(
-          Error.Generic(s"vanilla pricer does not allow payment convexity")
+          Error.PaymentConvexityNotSupported(endAt, paymentAt)
         )
           .flatMap: _ =>
             if detachment.isDetached(paymentAt, t) then Right(0.0)

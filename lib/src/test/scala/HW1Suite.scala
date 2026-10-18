@@ -196,8 +196,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
           val quotes = strip.map(CalibrationInstrument(_)) zip mktPrices
           HW1.calibrate[LocalDate](t0, lambda, quotes.toVector).flatMap(hw =>
             strip.traverse(hw.price)
-          )
-            .tupleLeft(mktPrices)
+          ).tupleLeft(mktPrices)
         .failOrAssert: (mktPrices, hwPrices) =>
           mktPrices zip hwPrices foreach ((hw, mkt) => assertEqualsDouble(hw, mkt, 1e-10))
 
@@ -229,7 +228,6 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
           val quotes = strip.map(CalibrationInstrument(_)) zip mktPrices
           HW1.calibrate[LocalDate](t0, lambda, quotes.toVector).flatMap(hw =>
             strip.traverse(hw.price)
-          )
-            .tupleLeft(mktPrices)
+          ).tupleLeft(mktPrices)
         .failOrAssert: (mktPrices, hwPrices) =>
           mktPrices zip hwPrices foreach ((hw, mkt) => assertEqualsDouble(hw, mkt, 1e-10))

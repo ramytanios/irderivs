@@ -33,14 +33,17 @@ object HW1:
       vAtExpiry: Double,
       factRepr: HW1VarFactRepr[T]
   ): Either[lib.Error, Double] =
-    val rate = caplet.rate
-    val dcf = DateLike[T].yearFraction(caplet.startAt, caplet.endAt)(using rate.dayCounter)
-    val discTp = caplet.discountCurve.discount(caplet.paymentAt)
-    val (totalVar, forward) = factRepr.LNF(rate, caplet.fixingAt, vAtExpiry)
-    val strike = 1 + dcf * caplet.strike
-    Either.catchNonFatal(
-      black.price(caplet.optionType, forward, strike, totalVar, discTp)
-    ).leftMap(th => lib.Error(th.getMessage))
+    Either.raiseWhen(caplet.paymentCurrency != caplet.rate.currency)(
+      lib.Error.QuantoNotSupported(caplet.paymentCurrency, caplet.rate.currency)
+    ).flatMap: _ =>
+      val rate = caplet.rate
+      val dcf = DateLike[T].yearFraction(caplet.startAt, caplet.endAt)(using rate.dayCounter)
+      val discTp = caplet.discountCurve.discount(caplet.paymentAt)
+      val (totalVar, forward) = factRepr.LNF(rate, caplet.fixingAt, vAtExpiry)
+      val strike = 1 + dcf * caplet.strike
+      Either.catchNonFatal(
+        black.price(caplet.optionType, forward, strike, totalVar, discTp)
+      ).leftMap(th => lib.Error(th.getMessage))
 
   // E^T{ a * e^{b * x_T} * I{sign * (x_T - xStar) >= 0} } where x_T ~ N(0, V_T)
   private inline def E(p: ExpAffine, xStar: Double, vT: Double, sign: Int): Double =
