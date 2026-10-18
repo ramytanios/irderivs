@@ -117,7 +117,8 @@ object HW1:
   def calibrate[T: DateLike](
       t0: T,
       lambda: Double,
-      quotes: Vector[(CalibrationInstrument[T], Double)]
+      quotes: Vector[(CalibrationInstrument[T], Double)],
+      sigLoHi: (Double, Double) = (0.0, 1.0)
   ): Either[lib.Error, HW1[T]] =
     Either.raiseWhen(quotes.isEmpty)(lib.Error("need at least one calibration instrument"))
       .flatMap: _ =>
@@ -139,7 +140,7 @@ object HW1:
                   case s: Swaption[T] => (sig: Double) =>
                       priceSwaptionFromVar(s, accVar + sig * sig * factorKernelIdx, factRepr)
                         .valueOr(throw _) - mktPrice
-                val (sigLo, sigHi) = (0.0, 1.0)
+                val (sigLo, sigHi) = sigLoHi
                 RootSolver.brent(fn, sigLo, sigHi, RootSolver.Settings(100, 1e-14)) match
                   case Left(_: RootSolver.NotBracketed) =>
                     val sig = sigFn(i - 1)
