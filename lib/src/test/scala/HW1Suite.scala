@@ -132,10 +132,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
         hw1.price(caplet).failOrAssert: tvHW =>
           assertEqualsDouble(tvHW, tvMC, 3 * stdErr)
 
-  test("analytical swaption prices should satisify put-call parity"):
-    // Zero payment delay: with a payment delay the model prices a payment
-    // convexity adjustment that the convexity-free curve forward below ignores, so
-    // parity only holds exactly against rate.forward when there is no delay.
+  test("analytical swaption prices should satisify put-call parity with 0 payment delay"):
     (rand.randSwaption(t0, useZeroPayDelay = true), rand.randHWLambda)
       .tupled
       .view
@@ -203,10 +200,6 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
   test("HW calibration algorithm should calibrate a strip of vanilla swaptions"):
     val t0 = d"2026-10-18"
     val volSurface = VolatilitySurface.flat[LocalDate](0.02)
-    // A single-factor HW with one shared sigma(t) can only reprice a *consistent*
-    // strip (same underlying swap, curves and option kind, only the expiry varying);
-    // a strip of independent underlyings with mixed tenors has non-monotone required
-    // variance and is not bootstrappable. So we vary only the expiry of one template.
     val randStrip = rand.randSwaption(t0, true).map: tmpl =>
       (1 to 5).toList.map: dt =>
         val tFixing = DateLike[LocalDate].plusPeriod(t0, Tenor(dt, Tenor.Unit.Year))

@@ -98,7 +98,7 @@ private[lib] class HW1VarFactRepr[T: DateLike](
   ): ExpAffine =
     val a = A(tStart, tEnd, vx, curve)
     val b = B(tStart, tEnd)
-    ExpAffine(a, b)
+    ExpAffine(a, -b)
 
   def forwardLibor(
       tStart: T,
@@ -114,12 +114,22 @@ private[lib] class HW1VarFactRepr[T: DateLike](
     val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.dayCounter).value
     x => (1.0 / zcFn(x) - 1.0) / dcf
 
+  // TODO might remove in favor of `forwardLibor`
+  // with rate used as the compounding rate
   def forwardCompoundedRate(
       tStart: T,
       tEnd: T,
       rate: CompoundedRate[T],
       vx: Double
   ): Double => Double =
+    require(
+      DateLike[T].compare(t0, tStart) < 0,
+      s"compounded rate is not forward looking with t0=$t0 and tStart=$tStart"
+    )
+    require(
+      tStart == rate.from && tEnd == rate.to,
+      "start and end dates don't match that of the compounded rate"
+    )
     require(
       measure.currency == rate.compoundingRate.currency,
       s"measure currency must match the currency of the underlying"

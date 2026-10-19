@@ -62,45 +62,45 @@ object HW1:
     val rate = swaption.rate
     val tExpiry = swaption.fixingAt
     val sign = swaption.optionType.sign
-    val exSign = -sign
     val (sipStart, sipEnd) = rate.interestPeriod(tExpiry)
     val fn = factRepr.forwardSwapRate(tExpiry, sipStart, sipEnd, rate, vAtExpiry)
-    RootSolver.brent(x => fn(x) - swaption.strike, -10, 10).map: xStar =>
-      val discFixing = swaption.discountCurve.discount(tExpiry)
-      val valueFixed = rate.fixedSchedule(sipStart, sipEnd).foldLeft(0.0):
-        case (acc, FixedCoupon[T](tStart, tEnd, tPay)) =>
-          val dcfStartEnd = DateLike[T].yearFraction(tStart, tEnd)(using rate.fixedDayCounter)
-          val p = factRepr.forwardZeroCoupon(tExpiry, tPay, rate.discountCurve, vAtExpiry)
-          acc + dcfStartEnd * E(p, xStar, vAtExpiry, exSign)
-      val isDiscSameReset = rate.discountCurve eq rate.floatingRate.resetCurve
-      val valueFloating = if isDiscSameReset then
-        val curve = rate.discountCurve
-        val pStart = factRepr.forwardZeroCoupon(tExpiry, sipStart, curve, vAtExpiry)
-        val pEnd = factRepr.forwardZeroCoupon(tExpiry, sipEnd, curve, vAtExpiry)
-        E(pStart, xStar, vAtExpiry, exSign) - E(pEnd, xStar, vAtExpiry, exSign)
-      else
-        val ip = rate match
-          case sr: SwapRate[T] =>
-            (fc: FloatingCoupon[T]) => rate.floatingRate.interestPeriod(fc.fixingAt)
-          case csr: CompoundedSwapRate[T] => (fc: FloatingCoupon[T]) => fc.from -> fc.to
-        rate.floatingSchedule(sipStart, sipEnd).foldLeft(0.0):
-          case (acc, fc @ FloatingCoupon[T](tFixing, tStart, tEnd, tPay)) =>
-            val floatingDayCounter = rate.floatingRate.dayCounter
-            val dcfStartEnd = DateLike[T].yearFraction(tStart, tEnd)(using floatingDayCounter)
-            val (ipStart, ipEnd) = ip(fc)
-            val dcfIp = DateLike[T].yearFraction(ipStart, ipEnd)(using floatingDayCounter)
-            val pDiscTPay =
-              factRepr.forwardZeroCoupon(tExpiry, tPay, rate.discountCurve, vAtExpiry)
-            val pResTStart =
-              factRepr.forwardZeroCoupon(tExpiry, ipStart, rate.floatingRate.resetCurve, vAtExpiry)
-            val pResTEnd =
-              factRepr.forwardZeroCoupon(tExpiry, ipEnd, rate.floatingRate.resetCurve, vAtExpiry)
-            acc +
-              dcfStartEnd / dcfIp * (
-                E(pDiscTPay.mul(pResTStart).div(pResTEnd), xStar, vAtExpiry, exSign) -
-                  E(pDiscTPay, xStar, vAtExpiry, exSign)
-              )
-      sign * discFixing * (valueFloating - swaption.strike * valueFixed)
+    RootSolver.brent(x => fn(x) - swaption.strike, -10, 10, RootSolver.Settings(100, 1e-10)).map:
+      xStar =>
+        val discFixing = swaption.discountCurve.discount(tExpiry)
+        val valueFixed = rate.fixedSchedule(sipStart, sipEnd).foldLeft(0.0):
+          case (acc, FixedCoupon[T](tStart, tEnd, tPay)) =>
+            val dcfStartEnd = DateLike[T].yearFraction(tStart, tEnd)(using rate.fixedDayCounter)
+            val p = factRepr.forwardZeroCoupon(tExpiry, tPay, rate.discountCurve, vAtExpiry)
+            acc + dcfStartEnd * E(p, xStar, vAtExpiry, sign)
+        val isDiscSameReset = rate.discountCurve eq rate.floatingRate.resetCurve
+        val valueFloating = if isDiscSameReset then
+          val curve = rate.discountCurve
+          val pStart = factRepr.forwardZeroCoupon(tExpiry, sipStart, curve, vAtExpiry)
+          val pEnd = factRepr.forwardZeroCoupon(tExpiry, sipEnd, curve, vAtExpiry)
+          E(pStart, xStar, vAtExpiry, sign) - E(pEnd, xStar, vAtExpiry, sign)
+        else
+          val ip = rate match
+            case sr: SwapRate[T] =>
+              (fc: FloatingCoupon[T]) => rate.floatingRate.interestPeriod(fc.fixingAt)
+            case csr: CompoundedSwapRate[T] => (fc: FloatingCoupon[T]) => fc.from -> fc.to
+          rate.floatingSchedule(sipStart, sipEnd).foldLeft(0.0):
+            case (acc, fc @ FloatingCoupon[T](tFixing, tStart, tEnd, tPay)) =>
+              val floatingDayCounter = rate.floatingRate.dayCounter
+              val dcfStartEnd = DateLike[T].yearFraction(tStart, tEnd)(using floatingDayCounter)
+              val (ipStart, ipEnd) = ip(fc)
+              val dcfIp = DateLike[T].yearFraction(ipStart, ipEnd)(using floatingDayCounter)
+              val pDiscTPay =
+                factRepr.forwardZeroCoupon(tExpiry, tPay, rate.discountCurve, vAtExpiry)
+              val pResTStart =
+                factRepr.forwardZeroCoupon(tExpiry, ipStart, rate.floatingRate.resetCurve, vAtExpiry)
+              val pResTEnd =
+                factRepr.forwardZeroCoupon(tExpiry, ipEnd, rate.floatingRate.resetCurve, vAtExpiry)
+              acc +
+                dcfStartEnd / dcfIp * (
+                  E(pDiscTPay.mul(pResTStart).div(pResTEnd), xStar, vAtExpiry, sign) -
+                    E(pDiscTPay, xStar, vAtExpiry, sign)
+                )
+        sign * discFixing * (valueFloating - swaption.strike * valueFixed)
 
   opaque type CalibrationInstrument[T] = Caplet[T] | Swaption[T]
 
