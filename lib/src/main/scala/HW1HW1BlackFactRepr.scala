@@ -65,7 +65,7 @@ class HW1HW1BlackFactRepr[T: DateLike](
 
     termD - termC + termFX
 
-  // log-normal forward E_t0^{d, T_p} { 1 + dcf(Ts, Te) * L^c(Tf, Ts, Te) }
+  // log-normal forward E_t^{d, T_p} { 1 + dcf(Ts, Te) * L^c(Tf, Ts, Te) }
   inline def LNF(rate: Libor[T], tFixing: T): Double =
     val (tStart, tEnd) = rate.interestPeriod(tFixing)
     val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.dayCounter)

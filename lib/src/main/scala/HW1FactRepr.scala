@@ -80,7 +80,7 @@ private[lib] class HW1VarFactRepr[T: DateLike](
     val bts = B(tStart, measure.tStar)
     curve.discount(tStart, tEnd) * exp(-0.5 * bte * bte * vx + bte * bts * vx)
 
-  // log-normal forward E_t0^{T_p} { 1 + dcf(Ts, Te) * L(Tf, Ts, Te) }
+  // log-normal forward E_t^{T_p} { 1 + dcf(Ts, Te) * L(Tf, Ts, Te) }
   inline def LNF(
       rate: Libor[T],
       tFixing: T,
