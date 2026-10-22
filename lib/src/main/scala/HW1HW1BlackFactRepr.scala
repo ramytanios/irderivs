@@ -16,16 +16,12 @@ class HW1HW1BlackFactRepr[T: DateLike](
 ) extends FactRepr[T, Double](measure):
 
   require(
-    ccyDomestic != ccyForeign,
-    s"domestic and foreign currencies must be different, got domestic $ccyDomestic and foreign $ccyForeign"
-  )
-
-  require(
     ccyDomestic == measure.currency,
     s"measure currency must be the domestic one, got measure currency ${measure.currency} and domestic $ccyDomestic"
   )
 
-  val domFactRepr = new HW1FactRepr[T](t0, hwDomestic(0), hwDomestic(1), measure)
+  val factReprFor =
+    new HW1FactRepr[T](t0, hwForeign(0), hwForeign(1), Measure(measure.tStar, ccyForeign))
 
   // ∫_lo^hi e^{a u} du
   private def expInt(a: Double, lo: Double, hi: Double): Double =
@@ -49,8 +45,8 @@ class HW1HW1BlackFactRepr[T: DateLike](
   def quantoAdj(to: T): Double =
     val (lambdaD, sigmaD) = hwDomestic
     val (lambdaC, sigmaC) = hwForeign
-    val tStar = domFactRepr.tau(measure.tStar)
-    val tauTo = domFactRepr.tau(to)
+    val tStar = factReprFor.tau(measure.tStar)
+    val tauTo = factReprFor.tau(to)
 
     // ρ_dc · Γ^d(u) : σc·ρdc·σd weighting the kernel e^{λc u} n_d(tStar - u)
     val termD = (sigmaC * corrDomesticForeign * sigmaD)
@@ -69,13 +65,35 @@ class HW1HW1BlackFactRepr[T: DateLike](
 
     termD - termC + termFX
 
+  // log-normal forward E_t0^{d, T_p} { 1 + dcf(Ts, Te) * L^c(Tf, Ts, Te) }
+  inline def LNF(rate: Libor[T], tFixing: T): Double =
+    val (tStart, tEnd) = rate.interestPeriod(tFixing)
+    val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.dayCounter)
+    val natForward = 1 + dcf * rate.forward(tFixing)
+    val (lambdaD, sigmaD) = hwDomestic
+    val (lambdaC, sigmaC) = hwForeign
+    val tauFixing = factReprFor.tau(tFixing) // TODO should be t?
+    val tauStart = factReprFor.tau(tStart)
+    val tauEnd = factReprFor.tau(tEnd)
+    val term = factReprFor.n(tauEnd - tauStart) * math.exp(-lambdaC * tauFixing)
+    val termD = (sigmaC * corrDomesticForeign * sigmaD)
+      .foldPieces(0.0, tauFixing, 0.0): (acc, lo, hi, v) =>
+        acc + v * expTimesN(lambdaC, lambdaD, factReprFor.tau(measure.tStar), lo, hi)
+    val termC = (sigmaC * sigmaC)
+      .foldPieces(0.0, tauFixing, 0.0): (acc, lo, hi, v) =>
+        acc + v * expTimesN(lambdaC, lambdaC, factReprFor.tau(tEnd), lo, hi)
+    val termFX = (sigmaC * corrForeignFX * blackFXVol)
+      .foldPieces(0.0, tauFixing, 0.0): (acc, lo, hi, v) =>
+        acc + v * expInt(lambdaC, lo, hi)
+    natForward * math.exp(-1 * term * (termD - termC + termFX))
+
   override def forwardZeroCoupon(
       t: T,
       tStart: T,
       tEnd: T,
       curve: YieldCurve[T]
   ): Double => Double =
-    val fn = domFactRepr.forwardZeroCoupon(t, tStart, tEnd, curve)
+    val fn = factReprFor.forwardZeroCoupon(t, tStart, tEnd, curve)
     (x: Double) => fn(x - quantoAdj(t))
 
   override def forwardLibor(
@@ -84,7 +102,11 @@ class HW1HW1BlackFactRepr[T: DateLike](
       tEnd: T,
       rate: Libor[T]
   ): Double => Double =
-    val fn = domFactRepr.forwardLibor(t, tStart, tEnd, rate)
+    require(
+      rate.currency == ccyForeign,
+      s"rate currency ${rate.currency} must be the foreign currency $ccyForeign"
+    )
+    val fn = factReprFor.forwardLibor(t, tStart, tEnd, rate)
     (x: Double) => fn(x - quantoAdj(t))
 
   override def forwardCompoundedRate(
@@ -93,7 +115,11 @@ class HW1HW1BlackFactRepr[T: DateLike](
       tEnd: T,
       rate: CompoundedRate[T]
   ): Double => Double =
-    val fn = domFactRepr.forwardCompoundedRate(t, tStart, tEnd, rate)
+    require(
+      rate.compoundingRate.currency == ccyForeign,
+      s"rate currency ${rate.compoundingRate.currency} must be the foreign currency $ccyForeign"
+    )
+    val fn = factReprFor.forwardCompoundedRate(t, tStart, tEnd, rate)
     (x: Double) => fn(x - quantoAdj(t))
 
   override def forwardSwapRate(
@@ -102,5 +128,9 @@ class HW1HW1BlackFactRepr[T: DateLike](
       tEnd: T,
       rate: SwapLike[T]
   ): Double => Double =
-    val fn = domFactRepr.forwardSwapRate(t, tStart, tEnd, rate)
+    require(
+      rate.currency == ccyForeign,
+      s"rate currency ${rate.currency} must be the foreign currnecy $ccyForeign"
+    )
+    val fn = factReprFor.forwardSwapRate(t, tStart, tEnd, rate)
     (x: Double) => fn(x - quantoAdj(t))

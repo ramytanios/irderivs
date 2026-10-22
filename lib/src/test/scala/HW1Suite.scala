@@ -73,7 +73,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
           )
 
   test("swaption analytical price should match MC price"):
-    val n = 100_00
+    val n = 100_000
     (rand.randSwaption(t0), rand.randHWLambda)
       .tupled
       .view

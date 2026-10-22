@@ -61,6 +61,7 @@ object quantities:
       case Day, Week, Month, Year
 
     val `1D`: Tenor = Tenor(1, Unit.Day)
+    val `2M`: Tenor = Tenor(3, Unit.Month)
     val `3M`: Tenor = Tenor(3, Unit.Month)
     val `6M`: Tenor = Tenor(6, Unit.Month)
     val `1Y`: Tenor = Tenor(1, Unit.Year)

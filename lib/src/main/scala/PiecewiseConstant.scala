@@ -36,3 +36,8 @@ class PiecewiseConstant(val knots: IndexedSeq[Double], val values: IndexedSeq[Do
       acc = op(acc, lo, hi, value)
       lo = hi
     acc
+
+object PiecewiseConstant:
+
+  def flat(value: Double): PiecewiseConstant =
+    new PiecewiseConstant(IndexedSeq(0.0), IndexedSeq(value))

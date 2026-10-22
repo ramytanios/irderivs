@@ -58,7 +58,7 @@ class HW1FactReprSuite extends munit.FunSuite:
 
     val measure = Measure(fixingAt, dtos.Currency.EUR)
 
-    Rand.choose(-0.1, -0.01, 0.0, 0.01, 0.1).flatMap: lambda =>
+    rand.randHWLambda.flatMap: lambda =>
       val hw = HW1FactRepr(t0, lambda, sigma, measure)
       val fastFn = hw.forwardSwapRate(fixingAt, tStart, tEnd, fastRate)
       val generalFn = hw.forwardSwapRate(fixingAt, tStart, tEnd, generalRate)

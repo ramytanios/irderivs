@@ -13,23 +13,39 @@ import java.time.LocalDate
 
 object rand:
 
-  private val randLiborTenor = Rand.choose(Tenor.`3M`, Tenor.`6M`)
-  private val randSwapTenor = Rand.choose(Tenor.`1Y`, Tenor.`2Y`, Tenor.`10Y`)
-  private val randPaymentDelay = Rand.choose(0, 1, 2)
-  private val randSpotLag = Rand.choose(0, 1, 2)
-  private val randDayCounter = Rand.choose(DayCounter.Act360, DayCounter.Act365)
-  private val randBdConvention = Rand.choose(BusinessDayConvention.values*)
-  private val randStub = Rand.choose(StubConvention.values*)
-  private val randDirection = Rand.choose(Direction.values*)
+  private[lib] val randLiborTenor = Rand.choose(Tenor.`3M`, Tenor.`6M`)
 
-  def randHWLambda: Rand[Double] = Rand.between(0.01, 0.3)
+  private[lib] val randSwapTenor = Rand.choose(Tenor.`1Y`, Tenor.`2Y`, Tenor.`10Y`)
+
+  private[lib] val randPaymentDelay = Rand.choose(0, 1, 2)
+
+  private[lib] val randSpotLag = Rand.choose(0, 1, 2)
+
+  private[lib] val randDayCounter = Rand.choose(DayCounter.Act360, DayCounter.Act365)
+
+  private[lib] val randBdConvention = Rand.choose(BusinessDayConvention.values*)
+
+  private[lib] val randStub = Rand.choose(StubConvention.values*)
+
+  private[lib] val randDirection = Rand.choose(Direction.values*)
+
+  private[lib] val randCcy = Rand.choose(Currency.values*)
+
+  private[lib] val randHWLambda: Rand[Double] = Rand.between(0.01, 0.3)
+
+  private[lib] def randCorrMatrix(dim: Int) =
+    Rand.normal.listOfN(dim).listOfN(dim).map: a =>
+      val s = Vector.tabulate(dim, dim): (i, j) =>
+        a(i).zip(a(j)).map(_ * _).sum
+      Vector.tabulate(dim, dim): (i, j) =>
+        if i == j then 1.0 else s(i)(j) / math.sqrt(s(i)(i) * s(j)(j))
 
   def randLibor(
       t0: LocalDate,
       useZeroSpotLag: Boolean = false
   ): Rand[Libor[LocalDate]] =
     for
-      ccy <- Rand.choose(Currency.values*)
+      ccy <- randCcy
       tenor <- randLiborTenor
       spotLag <- Rand.cond(useZeroSpotLag, 0, randSpotLag)
       dayCounter <- randDayCounter
@@ -39,7 +55,7 @@ object rand:
 
   def randDaily(t0: LocalDate): Rand[Libor[LocalDate]] =
     for
-      ccy <- Rand.choose(Currency.values*)
+      ccy <- randCcy
       dayCounter <- randDayCounter
       bdConvention <- randBdConvention
       resetCurve <- Rand.between(0.0, 5.0).map(r => YieldCurve.continuousCompounding(t0, r / 100.0))
