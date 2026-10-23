@@ -18,11 +18,15 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
 
   val sigma = PiecewiseConstant(IndexedSeq(0.0), IndexedSeq(0.1))
 
-  test("pricing caplets with zero vol should be intrinsic"):
+  extension (caplet: Caplet[LocalDate])
+    def isQuanto: Boolean =
+      caplet.paymentCurrency != caplet.rate.currency
 
+  test("pricing caplets with zero vol should be intrinsic"):
     (rand.randCaplet(t0), rand.randHWLambda)
       .tupled
       .view
+      .filterNot(_(0).isQuanto)
       .take(10)
       .foreach: (caplet, lambda) =>
         val zeroVol = PiecewiseConstant(IndexedSeq(0.0), IndexedSeq(0.0))
@@ -39,6 +43,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
     (rand.randCaplet(t0), rand.randHWLambda)
       .tupled
       .view
+      .filterNot(_(0).isQuanto)
       .take(10)
       .foreach: (caplet, lambda) =>
         val hw1 = new HW1(t0, lambda, sigma)
@@ -61,7 +66,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
             sigma,
             Measure(caplet.paymentAt, caplet.paymentCurrency)
           )
-          val fwd = factRepr.factReprVar.LNF(
+          val fwd = factRepr.factReprVar.logNormalForward(
             caplet.rate,
             caplet.fixingAt,
             factRepr.variance(caplet.fixingAt)
@@ -112,6 +117,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
     (rand.randCaplet(t0), rand.randHWLambda)
       .tupled
       .view
+      .filterNot(_(0).isQuanto)
       .take(10)
       .foreach: (caplet, lambda) =>
         val hw1 = new HW1(t0, lambda, sigma)
@@ -178,7 +184,7 @@ class HW1Suite extends munit.FunSuite with lib.EitherSyntax:
           tStart,
           tEnd,
           tEnd,
-          tmpl.paymentCurrency,
+          tmpl.rate.currency,
           tmpl.rate.forward(tFixing),
           tmpl.discountCurve,
           tmpl.optionType,

@@ -39,7 +39,7 @@ object HW1:
       val rate = caplet.rate
       val dcf = DateLike[T].yearFraction(caplet.startAt, caplet.endAt)(using rate.dayCounter)
       val discTp = caplet.discountCurve.discount(caplet.paymentAt)
-      val (totalVar, forward) = factRepr.LNF(rate, caplet.fixingAt, vAtExpiry)
+      val (totalVar, forward) = factRepr.logNormalForward(rate, caplet.fixingAt, vAtExpiry)
       val strike = 1 + dcf * caplet.strike
       Either.catchNonFatal(
         black.price(caplet.optionType, forward, strike, totalVar, discTp)

@@ -135,13 +135,14 @@ object rand:
       kind <- Rand.choose(OptionType.values*)
       discountCurve <-
         Rand.between(0.0, 5.0).map(d => YieldCurve.continuousCompounding(t0, d / 100.0))
+      ccyPay <- randCcy
     yield lib.Caplet(
       rate,
       tFixing,
       tStart,
       tEnd,
       tPay,
-      rate.currency,
+      ccyPay,
       strike,
       discountCurve,
       kind,

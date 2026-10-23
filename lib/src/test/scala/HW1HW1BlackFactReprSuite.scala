@@ -1,12 +1,12 @@
 package lib
 
+import lib.dtos.Currency
 import lib.literals.*
 import lib.quantities.*
 import lib.syntax.*
+import lib.testutils.oneDimPseudoRandomMC
 
 import java.time.LocalDate
-import lib.dtos.Currency
-import lib.testutils.oneDimPseudoRandomMC
 
 class HW1HW1BlackFactReprSuite extends munit.FunSuite:
 
@@ -71,8 +71,8 @@ class HW1HW1BlackFactReprSuite extends munit.FunSuite:
               assertEqualsDouble(pHybrid(x), pSingle(x), 1e-10)
 
           // log-normal forward degeneration
-          val forwardQuanto = factReprHybrid.LNF(libor, tFixing)
-          val forwardDegen = factReprSingle.factReprVar.LNF(
+          val forwardQuanto = factReprHybrid.logNormalForward(libor, tFixing)
+          val forwardDegen = factReprSingle.factReprVar.logNormalForward(
             libor,
             tFixing,
             factReprSingle.variance(tFixing)
@@ -150,7 +150,7 @@ class HW1HW1BlackFactReprSuite extends munit.FunSuite:
             c.corrDC,
             Measure(tPay, c.ccyPay)
           )
-        val forwardAnalytical = factReprQuanto.LNF(c.libor, tFixing)
+        val forwardAnalytical = factReprQuanto.logNormalForward(c.libor, tFixing)
         val dcf = DateLike[LocalDate].yearFraction(tStart, tEnd)(using c.libor.dayCounter)
         val fn =
           val fn0 = factReprQuanto.forwardLibor(tFixing, tStart, tEnd, c.libor)

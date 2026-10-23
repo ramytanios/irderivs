@@ -23,6 +23,8 @@ class HW1HW1BlackFactRepr[T: DateLike](
   val factReprFor =
     new HW1FactRepr[T](t0, hwForeign(0), hwForeign(1), Measure(measure.tStar, ccyForeign))
 
+  def varianceForeign(t: T): Double = factReprFor.variance(t)
+
   // ∫_lo^hi e^{a u} du
   private def expInt(a: Double, lo: Double, hi: Double): Double =
     if a == 0.0 then hi - lo
@@ -66,7 +68,7 @@ class HW1HW1BlackFactRepr[T: DateLike](
     termD - termC + termFX
 
   // log-normal forward E_t^{d, T_p} { 1 + dcf(Ts, Te) * L^c(Tf, Ts, Te) }
-  inline def LNF(rate: Libor[T], tFixing: T): Double =
+  inline def logNormalForward(rate: Libor[T], tFixing: T): Double =
     val (tStart, tEnd) = rate.interestPeriod(tFixing)
     val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.dayCounter)
     val natForward = 1 + dcf * rate.forward(tFixing)

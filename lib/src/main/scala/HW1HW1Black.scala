@@ -1,10 +1,8 @@
 package lib
 
+import lib.dtos.Currency
 import lib.quantities.YearFraction
 import lib.syntax.*
-import lib.dtos.Currency
-
-import scala.math.*
 
 class HW1HW1Black[T: DateLike](
     val t0: T,
@@ -24,7 +22,7 @@ class HW1HW1Black[T: DateLike](
     val domCurrency = caplet.paymentCurrency
     val dcf = DateLike[T].yearFraction(tStart, tEnd)(using rate.dayCounter)
     val discPay = caplet.discountCurve.discount(tPay)
-    val forward = new HW1HW1BlackFactRepr[T](
+    val factRepr = new HW1HW1BlackFactRepr[T](
       t0,
       ccyDomestic,
       ccyForeign,
@@ -35,8 +33,11 @@ class HW1HW1Black[T: DateLike](
       corrForeignFX,
       corrDomesticForeign,
       Measure(tPay, domCurrency)
-    ).LNF(rate, caplet.fixingAt)
+    )
+    val forward = factRepr.logNormalForward(rate, caplet.fixingAt)
     val strike = 1 + dcf * caplet.strike
+    val b = factRepr.factReprFor.B(tStart, tEnd)
+    val variance = b * b * factRepr.varianceForeign(caplet.fixingAt)
     Either.catchNonFatal(
-      black.price(caplet.optionType, forward, strike, ???, discPay)
+      black.price(caplet.optionType, forward, strike, variance, discPay)
     ).leftMap(th => lib.Error(th.getMessage))

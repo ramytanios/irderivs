@@ -81,7 +81,7 @@ private[lib] class HW1VarFactRepr[T: DateLike](
     curve.discount(tStart, tEnd) * exp(-0.5 * bte * bte * vx + bte * bts * vx)
 
   // log-normal forward E_t^{T_p} { 1 + dcf(Ts, Te) * L(Tf, Ts, Te) }
-  inline def LNF(
+  inline def logNormalForward(
       rate: Libor[T],
       tFixing: T,
       vFixing: Double
