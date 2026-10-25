@@ -126,7 +126,7 @@ object HW1:
     Either.raiseWhen(quotes.isEmpty)(lib.Error("need at least one calibration instrument"))
       .flatMap: _ =>
         val sorted = quotes.sortBy((ins, _) => ins.yfExpiry(t0).value)
-        val expiries = sorted.map((ins, _) => ins.yfExpiry(t0)).map(_.value)
+        val expiries = sorted.map((ins, _) => ins.yfExpiry(t0).value)
         Either.raiseUnless(expiries.forall(_ > 0.0))(
           lib.Error("calibration instruments should expire in the future")
         )

@@ -25,23 +25,6 @@ class HW1HW1BlackFactRepr[T: DateLike](
 
   def varianceForeign(t: T): Double = factReprFor.variance(t)
 
-  // ∫_lo^hi e^{a u} du
-  private def expInt(a: Double, lo: Double, hi: Double): Double =
-    if a == 0.0 then hi - lo
-    else (math.exp(a * hi) - math.exp(a * lo)) / a
-
-  // ∫_lo^hi u e^{a u} du
-  private def uExpInt(a: Double, lo: Double, hi: Double): Double =
-    if a == 0.0 then 0.5 * (hi * hi - lo * lo)
-    else
-      def prim(u: Double) = math.exp(a * u) * (a * u - 1.0) / (a * a)
-      prim(hi) - prim(lo)
-
-  // ∫_lo^hi e^{λc u} n_{λy}(tStar - u) du,  with n_λ(x) = (1 - e^{-λ x}) / λ  (= x if λ == 0)
-  private def expTimesN(lc: Double, ly: Double, tStar: Double, lo: Double, hi: Double): Double =
-    if ly == 0.0 then tStar * expInt(lc, lo, hi) - uExpInt(lc, lo, hi)
-    else (expInt(lc, lo, hi) - math.exp(-ly * tStar) * expInt(lc + ly, lo, hi)) / ly
-
   // ∫_{t0}^{to} [0, σc(u) e^{λc u}, 0] · Corr · [Γ^d(u), -Γ^c(u), σFX(u)]^T du
   // where Γ^y(u) = σy(u) n_y(tStar - u) and Corr is ordered d -> c -> FX.
   def quantoAdj(to: T): Double =
@@ -52,18 +35,15 @@ class HW1HW1BlackFactRepr[T: DateLike](
 
     // ρ_dc · Γ^d(u) : σc·ρdc·σd weighting the kernel e^{λc u} n_d(tStar - u)
     val termD = (sigmaC * corrDomesticForeign * sigmaD)
-      .foldPieces(0.0, tauTo, 0.0): (acc, lo, hi, v) =>
-        acc + v * expTimesN(lambdaC, lambdaD, tStar, lo, hi)
+      .integrate(0.0, tauTo)(expTimesN(lambdaC, lambdaD, tStar, _, _))
 
     // -Γ^c(u) : σc·σc weighting the kernel e^{λc u} n_c(tStar - u)
     val termC = (sigmaC * sigmaC)
-      .foldPieces(0.0, tauTo, 0.0): (acc, lo, hi, v) =>
-        acc + v * expTimesN(lambdaC, lambdaC, tStar, lo, hi)
+      .integrate(0.0, tauTo)(expTimesN(lambdaC, lambdaC, tStar, _, _))
 
     // ρ_cFX · σFX(u) : σc·ρcFX·σFX weighting the kernel e^{λc u}
     val termFX = (sigmaC * corrForeignFX * blackFXVol)
-      .foldPieces(0.0, tauTo, 0.0): (acc, lo, hi, v) =>
-        acc + v * expInt(lambdaC, lo, hi)
+      .integrate(0.0, tauTo)(expInt(lambdaC, _, _))
 
     termD - termC + termFX
 
@@ -79,14 +59,11 @@ class HW1HW1BlackFactRepr[T: DateLike](
     val tauEnd = factReprFor.tau(tEnd)
     val term = factReprFor.n(tauEnd - tauStart) * math.exp(-lambdaC * tauFixing)
     val termD = (sigmaC * corrDomesticForeign * sigmaD)
-      .foldPieces(0.0, tauFixing, 0.0): (acc, lo, hi, v) =>
-        acc + v * expTimesN(lambdaC, lambdaD, factReprFor.tau(measure.tStar), lo, hi)
+      .integrate(0.0, tauFixing)(expTimesN(lambdaC, lambdaD, factReprFor.tau(measure.tStar), _, _))
     val termC = (sigmaC * sigmaC)
-      .foldPieces(0.0, tauFixing, 0.0): (acc, lo, hi, v) =>
-        acc + v * expTimesN(lambdaC, lambdaC, factReprFor.tau(tEnd), lo, hi)
+      .integrate(0.0, tauFixing)(expTimesN(lambdaC, lambdaC, factReprFor.tau(tEnd), _, _))
     val termFX = (sigmaC * corrForeignFX * blackFXVol)
-      .foldPieces(0.0, tauFixing, 0.0): (acc, lo, hi, v) =>
-        acc + v * expInt(lambdaC, lo, hi)
+      .integrate(0.0, tauFixing)(expInt(lambdaC, _, _))
     natForward * math.exp(-1 * term * (termD - termC + termFX))
 
   override def forwardZeroCoupon(

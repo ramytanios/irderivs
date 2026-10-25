@@ -2,6 +2,7 @@ package lib
 
 import lib.dtos.OptionType
 import lib.literals.*
+import lib.quantities.Tenor
 import lib.syntax.*
 import lib.testsyntax.*
 import lib.testutils.oneDimPseudoRandomMC
@@ -157,3 +158,74 @@ class HW1HW1BlackSuite extends munit.FunSuite with lib.EitherSyntax:
         val price = new HW1(t0, cs.lambdaD, cs.hwVolD).price(cs.caplet)
         (priceQuanto, price).tupled.failOrAssert: (pQ, p) =>
           assertEqualsDouble(pQ, p, 1e-10)
+
+  test("calibrated fx vol should reproduce the market fx black variances"):
+
+    val fxExpiries = Vector(Tenor.`1Y`, Tenor.`2Y`, Tenor.`10Y`, Tenor.`20Y`)
+
+    case class CalibCase(
+        lambdaD: Double,
+        lambdaC: Double,
+        hwVolD: PiecewiseConstant,
+        hwVolC: PiecewiseConstant,
+        corrDC: PiecewiseConstant,
+        corrDFX: PiecewiseConstant,
+        corrCFX: PiecewiseConstant,
+        quotes: Vector[HW1HW1Black.FXVanilla[LocalDate]]
+    )
+
+    object CalibCase:
+      def randomize: Rand[CalibCase] =
+        for
+          lambdaD <- rand.randHWLambda
+          lambdaC <- rand.randHWLambda
+          hwVolD <- Rand.between(0.001, 0.002).map(PiecewiseConstant.flat)
+          hwVolC <- Rand.between(0.001, 0.002).map(PiecewiseConstant.flat)
+          corrMat <- rand.randCorrMatrix(3)
+          blackVols <- Rand.between(0.15, 0.2).listOfN(fxExpiries.size)
+        yield CalibCase(
+          lambdaD,
+          lambdaC,
+          hwVolD,
+          hwVolC,
+          PiecewiseConstant.flat(corrMat(0)(1)),
+          PiecewiseConstant.flat(corrMat(0)(2)),
+          PiecewiseConstant.flat(corrMat(1)(2)),
+          fxExpiries.zip(blackVols).map((tenor, vol) => HW1HW1Black.FXVanilla(t0 + tenor, vol))
+        )
+
+    def fxBlackVariance(cs: CalibCase, fxVol: PiecewiseConstant, tau: Double): Double =
+      HW1HW1Black.fxBlackVariance(
+        0.0,
+        tau,
+        tau,
+        cs.lambdaD -> cs.hwVolD,
+        cs.lambdaC -> cs.hwVolC,
+        fxVol,
+        cs.corrDFX,
+        cs.corrCFX,
+        cs.corrDC
+      )
+
+    CalibCase
+      .randomize
+      .view
+      .take(10)
+      .foreach: cs =>
+        val fxVol = HW1HW1Black.calibrate(
+          t0,
+          new HW1(t0, cs.lambdaD, cs.hwVolD),
+          new HW1(t0, cs.lambdaC, cs.hwVolC),
+          cs.corrDFX,
+          cs.corrCFX,
+          cs.corrDC,
+          cs.quotes
+        )
+        fxVol.failOrAssert: vol =>
+          cs.quotes.foreach: q =>
+            val tau = q.fixingYf(t0).value
+            assertEqualsDouble(
+              fxBlackVariance(cs, vol, tau),
+              q.blackVol * q.blackVol * tau,
+              1e-10
+            )

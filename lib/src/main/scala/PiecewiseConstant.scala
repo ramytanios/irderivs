@@ -37,6 +37,11 @@ class PiecewiseConstant(val knots: IndexedSeq[Double], val values: IndexedSeq[Do
       lo = hi
     acc
 
+  // ∫_from^to this(u) * kernel(u) du, where kernel(lo, hi) = ∫_lo^hi kernel(u) du
+  def integrate(from: Double, to: Double)(kernel: (Double, Double) => Double): Double =
+    foldPieces(from, to, 0.0): (acc, lo, hi, v) =>
+      acc + v * kernel(lo, hi)
+
 object PiecewiseConstant:
 
   def flat(value: Double): PiecewiseConstant =
