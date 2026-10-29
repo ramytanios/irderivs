@@ -73,7 +73,8 @@ class HW1HW1BlackFactRepr[T: DateLike](
       curve: YieldCurve[T]
   ): Double => Double =
     val fn = factReprFor.forwardZeroCoupon(t, tStart, tEnd, curve)
-    (x: Double) => fn(x - quantoAdj(t))
+    val qto = quantoAdj(t)
+    (x: Double) => fn(x - qto)
 
   override def forwardLibor(
       t: T,
@@ -86,7 +87,8 @@ class HW1HW1BlackFactRepr[T: DateLike](
       s"rate currency ${rate.currency} must be the foreign currency $ccyForeign"
     )
     val fn = factReprFor.forwardLibor(t, tStart, tEnd, rate)
-    (x: Double) => fn(x - quantoAdj(t))
+    val qto = quantoAdj(t)
+    (x: Double) => fn(x - qto)
 
   override def forwardCompoundedRate(
       t: T,
@@ -99,7 +101,8 @@ class HW1HW1BlackFactRepr[T: DateLike](
       s"rate currency ${rate.compoundingRate.currency} must be the foreign currency $ccyForeign"
     )
     val fn = factReprFor.forwardCompoundedRate(t, tStart, tEnd, rate)
-    (x: Double) => fn(x - quantoAdj(t))
+    val qto = quantoAdj(t)
+    (x: Double) => fn(x - qto)
 
   override def forwardSwapRate(
       t: T,
@@ -112,4 +115,5 @@ class HW1HW1BlackFactRepr[T: DateLike](
       s"rate currency ${rate.currency} must be the foreign currnecy $ccyForeign"
     )
     val fn = factReprFor.forwardSwapRate(t, tStart, tEnd, rate)
-    (x: Double) => fn(x - quantoAdj(t))
+    val qto = quantoAdj(t)
+    (x: Double) => fn(x - qto)
